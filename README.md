@@ -72,9 +72,8 @@ sudo nixos-rebuild switch --flake /home/cloudygirl/nixos
 
 注册 [ankiweb.net](https://ankiweb.net) 免费账号，所有设备登录同账号。
 
-> **国内用户注意**：AnkiWeb 需代理访问。NixOS 上已在 Anki 内配好代理
-> `127.0.0.1:10808`。Windows 在 Anki → 首选项 → 网络 → 手动代理中输入同样地址。
->
+> ankiweb需要魔法代理进行访问同步
+> 如果不愿意用代理可以自建国内同步服务器，请自行查看[官方文档](https://open-spaced-repetition.github.io/anki-manual-zh-CN/sync-server.html)
 > 首次同步牌组体积约 2MB，后续仅同步学习进度，几秒完成。
 
 ## 发音配置
