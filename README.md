@@ -5,7 +5,7 @@
 ## 牌组结构
 
 导入后 Anki 牌组列表呈现层次结构：
-
+R
 ```
 红宝书考研词汇
 ├── 必考词
@@ -59,8 +59,11 @@ sudo nixos-rebuild switch --flake /home/cloudygirl/nixos
 
 | 平台 | 应用 | 费用 | 下载 |
 |------|------|------|------|
-| Android | **AnkiDroid** | 免费 | [Google Play](https://play.google.com/store/apps/details?id=com.ichi2.anki) |
-| iOS / iPad | **AnkiMobile** | ¥163 | [App Store](https://apps.apple.com/app/ankimobile-flashcards/id373493387) |
+| Android | **AnkiDroid** | 免费 | [GitHub 官方下载](https://github.com/ankidroid/Anki-Android/releases) |
+| iOS / iPad | **AnkiMobile** | ¥163 | [App Store](https://apps.apple.com/cn/app/ankimobile-flashcards/id373493387) |
+
+> AnkiDroid 开源免费，国内可直接下载 apk 安装；iOS 端 AnkiMobile 为官方唯一 App（付费），
+> 使用苹果设备的，可免费使用 [AnkiWeb 网页版](https://ankiweb.net) 代替苹果商店付费下载使用s。
 
 ## 导入牌组
 
