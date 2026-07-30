@@ -24,20 +24,58 @@
 
 翻卡逻辑：正面显示单词 → 翻面显示释义和助记。
 
-## 安装 Anki（NixOS）
+## 安装 Anki
 
-系统配置 `packages.nix` 中已加入 `anki`，重建即可：
+### Linux（NixOS）
 
 ```bash
 sudo nixos-rebuild switch --flake /home/cloudygirl/nixos
 ```
 
-其他 Linux 发行版可从 [ankiweb.net](https://apps.ankiweb.net) 下载。
+其他发行版：`sudo pacman -S anki` / `sudo apt install anki` / Flatpak: `flatpak install flathub net.ankiweb.Anki`
+
+### Windows
+
+1. 访问 [apps.ankiweb.net](https://apps.ankiweb.net) 下载安装包
+2. 安装后打开 Anki，语言选中文
+3. 双击 `.apkg` 文件即可自动导入，或在菜单 **文件 → 导入**
+
+> Win 10/11 均可使用，Anki 自动适配系统深色模式。发音功能同样通过 AwesomeTTS 插件实现（见插件章节）。
+
+### 手机 / 平板
+
+| 平台 | 应用 | 费用 | 下载 |
+|------|------|------|------|
+| Android | **AnkiDroid** | 免费 | [Google Play](https://play.google.com/store/apps/details?id=com.ichi2.anki) / [F-Droid](https://f-droid.org/packages/com.ichi2.anki/) |
+| iOS / iPad | **AnkiMobile** | 付费（¥163） | [App Store](https://apps.apple.com/app/ankimobile-flashcards/id373493387) |
+| 任意浏览器 | **AnkiWeb** | 免费 | [ankiweb.net](https://ankiweb.net) |
+
+> iOS 付费是官方唯一收入来源，支持开发。嫌贵可用浏览器版 AnkiWeb，功能基本够用。
+
+#### 手机导入步骤
+
+1. 将 `.apkg` 文件传到手机（微信发送、数据线、或从 GitHub 下载）
+2. 打开 AnkiDroid / AnkiMobile
+3. 点击文件 → 系统会弹出导入对话框
+4. 选择 `.apkg` 文件完成导入
+
+或者直接用手机浏览器访问本仓库，下载 `.apkg` 文件后打开。
+
+## 多设备同步
+
+所有设备共享学习进度，推荐注册 AnkiWeb 免费账号：
+
+1. 访问 [ankiweb.net](https://ankiweb.net) 注册账号
+2. 在桌面端 Anki 点击 **同步** 按钮（右上角），用同账号登录
+3. 在手机端同样登录
+4. **每次学习前后各点一次同步**，避免冲突
+
+> 发音文件体积较大，桌面端导入 `带发音_全套.apkg` 后首次同步可能需要 5~10 分钟。手机端同步时会自动下载媒体文件。
 
 ## 导入牌组
 
 1. 打开 Anki
-2. **文件 → 导入**
+2. **文件 → 导入**（手机端：点击牌组列表底部的 `+` 或直接打开 `.apkg` 文件）
 3. 选择 `.apkg` 文件
 4. 推荐先导 `红宝书考研词汇_带发音_全套.apkg`（一个文件包含全部 4292 词）
 5. 如需按单元学习，导入对应的 `Unit` 文件
@@ -46,19 +84,25 @@ sudo nixos-rebuild switch --flake /home/cloudygirl/nixos
 
 ## 推荐插件
 
+插件仅桌面端（Linux / Windows / macOS）支持，手机端不兼容。
+
 ### AwesomeTTS — 单词发音（必装）
 
 **安装**：工具 → 附加组件 → 获取插件 → 输入代码 `1436550454`
 
-**功能**：翻卡片时自动朗读单词发音（Google TTS）
+**功能**：翻卡片时自动朗读单词发音（Google TTS，需联网）
 
-**NixOS 上已配置好**，无需额外操作。若其他平台使用，需在 AwesomeTTS 设置中添加 Google TTS 预设。
+**桌面端配置**：NixOS 上已预配好。Windows 首次安装后，进入工具 → AwesomeTTS → Options → 添加 Google TTS 预设（Voice 选 `en`），然后重启 Anki。
+
+> 手机端不支持 AwesomeTTS 插件。如需手机端发音，使用 `红宝书考研词汇_带发音_全套.apkg` 导入后通过桌面端同步过去（发音文件会随同步传输）。
 
 ### Review Heatmap — 学习热力图
 
 **安装**：工具 → 附加组件 → 获取插件 → 输入代码 `1771074083`
 
 **功能**：在主界面显示每日学习量热力图（类似 GitHub 贡献图），直观追踪学习进度。
+
+> 手机端替代：AnkiDroid 自带 **统计** 页面，可查看学习图表。
 
 ## 学习建议
 
