@@ -10,8 +10,11 @@
 | `红宝书考研词汇_带发音_全套.apkg` | 同上，含 AwesomeTTS on-the-fly 发音 |
 | `必考词_Unit01.apkg` ~ `必考词_Unit26.apkg` | 按单元拆分（必考词），不含发音 |
 | `基础词_Unit01.apkg` ~ `基础词_Unit30.apkg` | 按单元拆分（基础词），不含发音 |
-| `红宝书考研词汇_全部.txt` | 纯文本词表（JSON 格式） |
+| `红宝书考研词汇_全部.txt` | 纯文本词表（TSV 格式） |
 | `all_entries_v2.json` | 结构化词条数据（含单词、音标、释义、助记） |
+| `fetch_youdao.py` | 从有道词典补全缺失释义 |
+| `gen_mnemonics.py` | 基于词根词缀生成中文助记 |
+| `generate_anki_decks.py` | genanki 生成 apkg 牌组 |
 
 ## 卡片字段
 
@@ -90,9 +93,9 @@ sudo nixos-rebuild switch --flake /home/cloudygirl/nixos
 
 **安装**：工具 → 附加组件 → 获取插件 → 输入代码 `1436550454`
 
-**功能**：翻卡片时自动朗读单词发音（Google TTS，需联网）
+**功能**：翻卡片时自动朗读单词发音（有道词典 TTS，`en-US` 美式发音，国内直连）
 
-**桌面端配置**：NixOS 上已预配好。Windows 首次安装后，进入工具 → AwesomeTTS → Options → 添加 Google TTS 预设（Voice 选 `en`），然后重启 Anki。
+**桌面端配置**：NixOS 上已预配好（有道 TTS + `{{tts en_US:Front}}` 卡片模板）。Windows 首次安装后，进入工具 → AwesomeTTS → Options → 添加有道词典预设（Voice 选 `en-US`），然后重启 Anki。
 
 > 手机端不支持 AwesomeTTS 插件。如需手机端发音，使用 `红宝书考研词汇_带发音_全套.apkg` 导入后通过桌面端同步过去（发音文件会随同步传输）。
 
@@ -112,13 +115,12 @@ sudo nixos-rebuild switch --flake /home/cloudygirl/nixos
 
 ## 数据来源与生成
 
-原始数据来自 2026 版红宝书词条，经 [`generate_anki_decks.py`](https://github.com/...) 转换为 Anki 牌组：
+原始数据来自 2026 版红宝书词条，处理流程：
 
 ```
-红宝书词条 (JSON)
-    │
-    ▼
 all_entries_v2.json (结构化数据)
+    │  fetch_youdao.py → 从有道词典补全缺失释义 (821 条)
+    │  gen_mnemonics.py → 基于词根词缀生成中文助记 (覆盖 72%)
     │
     ▼ generate_anki_decks.py (genanki)
     │
@@ -126,6 +128,19 @@ all_entries_v2.json (结构化数据)
     ├── 红宝书考研词汇_带发音_全套.apkg    (模板嵌入 {{tts en_US:Front}})
     ├── 必考词_Unit01~26.apkg
     └── 基础词_Unit01~30.apkg
+```
+
+### 维护命令
+
+```bash
+# 从有道词典补全缺失的单词释义
+uv run --with genanki python fetch_youdao.py
+
+# 基于词根词缀生成助记
+python3 gen_mnemonics.py
+
+# 重新生成所有 apkg 牌组
+uv run --with genanki python generate_anki_decks.py
 ```
 
 ## 许可证
