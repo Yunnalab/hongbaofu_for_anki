@@ -56,29 +56,50 @@ def main():
     with open(f"{BASE}/all_entries_v2.json") as f:
         entries = json.load(f)
 
-    # 全套：带发音 + 简化
-    for model, suffix in ((MODEL_TTS, "带发音_全套"), (MODEL_PLAIN, "全套")):
-        deck = genanki.Deck(1785260001, "红宝书考研词汇")
-        for e in entries:
-            deck.add_note(make_note(e, model))
-        out = f"{BASE}/红宝书考研词汇_{suffix}.apkg"
-        genanki.Package(deck).write_to_file(out)
-        print(f"生成: {out} ({len(entries)} 词)")
-
-    # 按单元拆分
+    # 分层子牌组（带发音）: 红宝书考研词汇::必考词::Unit 01
     sections = sorted({e["section"] for e in entries})
+    all_decks = []
     deck_id = 1785270000
     for sec in sections:
-        units = sorted({e["unit"] for e in entries if e["section"] == sec})
-        for u in units:
+        for u in sorted({e["unit"] for e in entries if e["section"] == sec}):
+            deck_id += 1
+            name = f"红宝书考研词汇::{sec}::Unit {u:02d}"
+            deck = genanki.Deck(deck_id, name)
+            group = [e for e in entries if e["section"] == sec and e["unit"] == u]
+            for e in group:
+                deck.add_note(make_note(e, MODEL_TTS))
+            all_decks.append(deck)
+
+    genanki.Package(all_decks).write_to_file(f"{BASE}/红宝书考研词汇_带发音_全套.apkg")
+    print(f"生成: 红宝书考研词汇_带发音_全套.apkg ({len(entries)} 词, {len(all_decks)} 子牌组)")
+
+    # 简化版
+    all_plain = []
+    deck_id = 1785250000
+    for sec in sections:
+        for u in sorted({e["unit"] for e in entries if e["section"] == sec}):
+            deck_id += 1
+            name = f"红宝书考研词汇(简化)::{sec}::Unit {u:02d}"
+            deck = genanki.Deck(deck_id, name)
+            group = [e for e in entries if e["section"] == sec and e["unit"] == u]
+            for e in group:
+                deck.add_note(make_note(e, MODEL_PLAIN))
+            all_plain.append(deck)
+
+    genanki.Package(all_plain).write_to_file(f"{BASE}/红宝书考研词汇_全套.apkg")
+    print(f"生成: 红宝书考研词汇_全套.apkg ({len(entries)} 词, {len(all_plain)} 子牌组)")
+
+    # 按单元独立 apkg（简化版）
+    deck_id = 1785271000
+    for sec in sections:
+        for u in sorted({e["unit"] for e in entries if e["section"] == sec}):
             deck_id += 1
             deck = genanki.Deck(deck_id, f"{sec}_Unit{u:02d}")
             group = [e for e in entries if e["section"] == sec and e["unit"] == u]
             for e in group:
                 deck.add_note(make_note(e, MODEL_PLAIN))
-            out = f"{BASE}/{sec}_Unit{u:02d}.apkg"
-            genanki.Package(deck).write_to_file(out)
-    print("单元牌组生成完毕")
+            genanki.Package(deck).write_to_file(f"{BASE}/{sec}_Unit{u:02d}.apkg")
+    print("单元独立牌组生成完毕")
 
 
 if __name__ == "__main__":
