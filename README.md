@@ -125,6 +125,10 @@ python3 gen_mnemonics.py
 
 # 重新生成所有 apkg 牌组
 uv run --with genanki python generate_anki_decks.py
+
+# 将你在anki对牌组的修改同步到apkg本地包
+python3 sync_from_anki.py --yes
+
 ```
 
 ## 许可证
