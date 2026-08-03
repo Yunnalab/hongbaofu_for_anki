@@ -96,7 +96,8 @@ AwesomeTTS 不支持手机端。替代方案：
 
 | 插件 | 代码 | 说明 |
 |------|------|------|
-| Review Heatmap | `1771074083` | 主界面显示学习热力图 |
+| Review Heatmap | `1771074083` | 主界面显示学习热力图 |python3 sync_from_anki.py --yes
+
 
 ## 学习建议
 
