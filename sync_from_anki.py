@@ -3,17 +3,18 @@
 import json
 import re
 import os
+import hashlib
 import sqlite3
 import shutil
 import sys
 
+BASE = os.path.dirname(os.path.abspath(__file__))
 ANKI_DB = os.path.expanduser("~/.local/share/Anki2/账户 1/collection.anki2")
-SRC_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "all_entries_v2.json")
-DIFF_FILE = "/tmp/anki_sync_diff.json"
+SRC_JSON = os.path.join(BASE, "all_entries_v2.json")
+SYNC_STATE = os.path.join(BASE, ".sync_state.json")
 
 
 def extract_back(back):
-    """从 Anki back 字段中分离释义和助记"""
     no_phonetic = re.sub(r'\[.*?\]\s*<br>', '', back, count=1)
     meaning = ''
     mnemonic = ''
@@ -27,7 +28,6 @@ def extract_back(back):
 
 
 def load_anki_notes():
-    """从 Anki 数据库加载红宝书牌组的笔记"""
     tmp_db = "/tmp/collection_sync.anki2"
     shutil.copy2(ANKI_DB, tmp_db)
     conn = sqlite3.connect(tmp_db)
@@ -37,9 +37,8 @@ def load_anki_notes():
     deck_ids = [str(d[0]) for d in cur.fetchall() if '红宝' in d[1]]
 
     if not deck_ids:
-        print("未找到红宝书牌组")
         conn.close()
-        return []
+        return {}
 
     placeholders = ','.join(['?'] * len(deck_ids))
     cur.execute(f"""
@@ -62,6 +61,22 @@ def load_anki_notes():
     return notes
 
 
+def hash_content(s):
+    return hashlib.md5(s.encode()).hexdigest()
+
+
+def load_state():
+    if os.path.exists(SYNC_STATE):
+        with open(SYNC_STATE) as f:
+            return json.load(f)
+    return {}
+
+
+def save_state(snapshot):
+    with open(SYNC_STATE, 'w') as f:
+        json.dump(snapshot, f, ensure_ascii=False, indent=2)
+
+
 def norm(s):
     return re.sub(r'\s+', '', str(s).replace('<br>', '').replace('<br/>', ''))
 
@@ -73,28 +88,42 @@ def compare():
     anki_notes = load_anki_notes()
     if not anki_notes:
         print("无法读取 Anki 数据，请确认 Anki 已导入牌组")
-        return
+        return None, [], {}
+
+    state = load_state()
 
     diffs = []
+    anki_snapshot = {}
+
     for entry in src:
         word = entry['word'].strip().lower()
         src_meaning = entry.get('meaning', '')
-        src_mnemonic = entry.get('mnemonic', '')
+        src_mnemonic = entry.get('mnemonic', '').replace('【助记】', '').strip()
 
         if word not in anki_notes:
             continue
 
         anki_back = anki_notes[word]
         anki_meaning, anki_mnemonic = extract_back(anki_back)
-
-        # 仅比较内容，去除【助记】前缀
-        src_m = src_mnemonic.replace('【助记】', '').strip()
         anki_m = anki_mnemonic.replace('【助记】', '').strip()
 
-        meaning_changed = norm(src_meaning) != norm(anki_meaning)
-        mnemonic_changed = norm(src_m) != norm(anki_m)
+        anki_snapshot[word] = {
+            "meaning_hash": hash_content(anki_meaning),
+            "mnemonic_hash": hash_content(anki_m),
+        }
 
-        if meaning_changed or mnemonic_changed:
+        meaning_changed = norm(src_meaning) != norm(anki_meaning)
+        mnemonic_changed = norm(src_mnemonic) != norm(anki_m)
+
+        if not meaning_changed and not mnemonic_changed:
+            continue
+
+        last = state.get(word, {})
+        # 只有当 Anki 端的数据相比上次同步有变化时，才认为是新修改
+        meaning_new = (hash_content(anki_meaning) != last.get("meaning_hash", ""))
+        mnemonic_new = (hash_content(anki_mnemonic) != last.get("mnemonic_hash", ""))
+
+        if (meaning_changed and meaning_new) or (mnemonic_changed and mnemonic_new):
             diffs.append({
                 'word': entry['word'],
                 'section': entry['section'],
@@ -103,37 +132,28 @@ def compare():
                 'anki_meaning': anki_meaning,
                 'src_mnemonic': src_mnemonic,
                 'anki_mnemonic': anki_m,
-                'meaning_changed': meaning_changed,
-                'mnemonic_changed': mnemonic_changed,
+                'meaning_changed': meaning_changed and meaning_new,
+                'mnemonic_changed': mnemonic_changed and mnemonic_new,
             })
 
-    return src, diffs
+    return src, diffs, anki_snapshot
 
 
 def show_diff(diffs):
     if not diffs:
-        print("没有发现修改")
         return
 
-    print(f"\n发现 {len(diffs)} 条变化：\n")
-    print(f"{'单词':<16} {'字段':<6} {'原文':<45} {'修改后':<45}")
+    print(f"\n发现 {len(diffs)} 条新修改：\n")
+    print(f"{'单词':<16} {'字段':<6} {'源文件':<45} {'Anki中':<45}")
     print("-" * 120)
     for d in diffs:
         if d['meaning_changed']:
-            src_t = d['src_meaning'][:42]
-            anki_t = d['anki_meaning'][:42]
-            print(f"{d['word']:<16} {'释义':<6} {src_t:<45} {anki_t:<45}")
+            print(f"{d['word']:<16} {'释义':<6} {d['src_meaning'][:42]:<45} {d['anki_meaning'][:42]:<45}")
         if d['mnemonic_changed']:
-            src_t = d['src_mnemonic'][:42]
-            anki_t = d['anki_mnemonic'][:42]
-            print(f"{d['word']:<16} {'助记':<6} {src_t:<45} {anki_t:<45}")
-
-    with open(DIFF_FILE, 'w') as f:
-        json.dump(diffs, f, ensure_ascii=False, indent=2)
+            print(f"{d['word']:<16} {'助记':<6} {d['src_mnemonic'][:42]:<45} {d['anki_mnemonic'][:42]:<45}")
 
 
 def apply(diffs, src):
-    """将修改写入源 JSON"""
     word_map = {e['word'].strip().lower(): e for e in src}
     for d in diffs:
         w = d['word'].strip().lower()
@@ -150,7 +170,7 @@ def apply(diffs, src):
 
 def regenerate():
     import subprocess
-    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "generate_anki_decks.py")
+    script = os.path.join(BASE, "generate_anki_decks.py")
     result = subprocess.run(["python3", script], capture_output=True, text=True)
     print(result.stdout)
     if result.returncode != 0:
@@ -158,16 +178,24 @@ def regenerate():
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "--yes":
-        auto_apply = True
-    else:
-        auto_apply = False
+    if len(sys.argv) > 1 and sys.argv[1] == "--init":
+        _, _, anki_snapshot = compare()
+        if anki_snapshot:
+            save_state(anki_snapshot)
+            print(f"已建立基线 ({len(anki_snapshot)} 词)，下次运行只显示新修改")
+        return
+
+    auto_apply = len(sys.argv) > 1 and sys.argv[1] == "--yes"
 
     print("正在对比 Anki 数据库与源 JSON ...")
-    src, diffs = compare()
+    src, diffs, anki_snapshot = compare()
+
+    if src is None:
+        return
 
     if not diffs:
-        print("源 JSON 与 Anki 数据库一致，无需同步")
+        print("没有新修改")
+        save_state(anki_snapshot)
         return
 
     show_diff(diffs)
@@ -175,20 +203,19 @@ def main():
     if auto_apply:
         choice = 'y'
     else:
-        print(f"\n是否将以上 {len(diffs)} 条修改写入源 JSON？(y/n/r)")
-        print("  y = 写入源 JSON")
-        print("  n = 取消")
-        print("  r = 写入并重新生成 apkg")
+        print(f"\n写入源 JSON？(y/n/r)")
+        print("  y = 写入  n = 取消  r = 写入并重新生成 apkg")
         choice = input("> ").strip().lower()
 
     if choice.startswith('y') or choice.startswith('r'):
         apply(diffs, src)
+        save_state(anki_snapshot)
         if choice.startswith('r'):
-            print("正在重新生成 apkg 文件...")
+            print("正在重新生成 apkg ...")
             regenerate()
+        print("同步完成")
     else:
         print("已取消")
-        print(f"差异文件已保存到 {DIFF_FILE}")
 
 
 if __name__ == "__main__":
