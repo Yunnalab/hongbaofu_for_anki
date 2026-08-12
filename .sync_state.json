@@ -12,7 +12,7 @@
     "mnemonic_hash": "14c49cf41c3ccc0bbdb26a9e45416f76"
   },
   "remain": {
-    "meaning_hash": "d60b62104f5bb3bd9c95714ab03fa890",
+    "meaning_hash": "77f1bc5d266ae29bfc715f5d9fda48f5",
     "mnemonic_hash": "20aeffc4657ed417ef556d207095dca5"
   },
   "remainder": {
@@ -64,7 +64,7 @@
     "mnemonic_hash": "5a2f54d2bc7775db31a72c03987559c0"
   },
   "contract": {
-    "meaning_hash": "3dfa1ffd3307235ce993c88d1645d9f1",
+    "meaning_hash": "4d6c26c2de9f4e3d48a410245c9ac784",
     "mnemonic_hash": "a89a4096a614c408af16f3604121914a"
   },
   "contradict": {
@@ -92,7 +92,7 @@
     "mnemonic_hash": "993c5a4a1d13b8cecccb6444082927e7"
   },
   "divide": {
-    "meaning_hash": "d593e80de6ab584eb3260c8870b3c318",
+    "meaning_hash": "01825a772612e3c4c04539174fd7d0d0",
     "mnemonic_hash": "ee7c02b96529b4013a392064ae1490ef"
   },
   "dividend": {
@@ -104,7 +104,7 @@
     "mnemonic_hash": "d160e8ec6a1c97b53f4ad029c03f70d0"
   },
   "document": {
-    "meaning_hash": "e1e077c6a98b4cf985b87f158a00ebc9",
+    "meaning_hash": "79c7af85e235a0c4f7497798f18e1a91",
     "mnemonic_hash": "2899b190ac010520157ba12177b14cd5"
   },
   "documentary": {
@@ -124,7 +124,7 @@
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "exert": {
-    "meaning_hash": "b663b5069b4f9dd2cf684eb3f59eac12",
+    "meaning_hash": "20f6fbb6fe16622488cfac4cd207ffa4",
     "mnemonic_hash": "a5d04fb04aa3e4e506c7565c422c9d2c"
   },
   "exhaust": {
@@ -132,7 +132,7 @@
     "mnemonic_hash": "1d7a2e4fc3a0a35950ca9fa7753cce01"
   },
   "exist": {
-    "meaning_hash": "32c912c884f106d7a6576b25f5abf3c1",
+    "meaning_hash": "51afc5bd525eed734fda573618aeec61",
     "mnemonic_hash": "5587c843da4652aad2a24cf113b0c516"
   },
   "existence": {
@@ -204,7 +204,7 @@
     "mnemonic_hash": "33b999463a1aa47bd3c2ffa74225ce30"
   },
   "substitute": {
-    "meaning_hash": "411cfdd5e83d33518d607357a75a2d57",
+    "meaning_hash": "285d241f643cab5e01402ffdbf45f5bd",
     "mnemonic_hash": "b70cc0e55410ad5dd37cadaff11abe81"
   },
   "subtle": {
@@ -220,7 +220,7 @@
     "mnemonic_hash": "81df279e56b47438715edcc0d46f04c5"
   },
   "amend": {
-    "meaning_hash": "adb792faa7d260d3c79335b1c2f9eff0",
+    "meaning_hash": "95875542eac0a8cf67412ed320b649f4",
     "mnemonic_hash": "ed5b972155e49880b64dd2ce781d7ca5"
   },
   "amount": {
@@ -256,7 +256,7 @@
     "mnemonic_hash": "d1a2d6d2ba13720e8b5d30b961cfb098"
   },
   "startle": {
-    "meaning_hash": "7b1aa0b3a98fe4643258b71d0b5636c7",
+    "meaning_hash": "55d7203661149c5e37cd9e68efcd3382",
     "mnemonic_hash": "fab525744143c6e4b37eb350ff12087a"
   },
   "starve": {
@@ -639,6 +639,10 @@
     "meaning_hash": "2b0c54dcbb628a8be00779ce816ff24c",
     "mnemonic_hash": "27453f75660494f22d3466f8965c380a"
   },
+  "storage": {
+    "meaning_hash": "33aa1e8036880349828280b8b01f62c7",
+    "mnemonic_hash": "fd741967a8ecf32d7390222ad87eaee2"
+  },
   "stride": {
     "meaning_hash": "c6bfc694e98d937ac700f0ea60a74f53",
     "mnemonic_hash": "16cf9b440a1abbe0bc32ff6a90c35582"
@@ -720,7 +724,7 @@
     "mnemonic_hash": "bee4d4c30d696e935c9e5a8ed8282a75"
   },
   "annoy": {
-    "meaning_hash": "4ec587ae7d6bf2b0fa106ba556fc9b2d",
+    "meaning_hash": "0cf66c414d134181c7ce28607fe52663",
     "mnemonic_hash": "c9ae93252e3edc4de7aa286fa84b5631"
   },
   "annual": {
@@ -736,7 +740,7 @@
     "mnemonic_hash": "3f1696db77f4f55da0ed8b2267ce486d"
   },
   "confirm": {
-    "meaning_hash": "9a47a67419b91a366f8ebeec54e2fcd6",
+    "meaning_hash": "c9dc2158d31cd246693fe31cae91d4a8",
     "mnemonic_hash": "4d9eff5fbfffa1eaec08cfb918f8c5f7"
   },
   "conflict": {
@@ -836,7 +840,7 @@
     "mnemonic_hash": "907bb0e04dfd96d87997e55e6b9df0b9"
   },
   "apply": {
-    "meaning_hash": "3787e0d0228f1ab44fc4073326e57376",
+    "meaning_hash": "2e62d65c6f4b0fef30c04133ce033095",
     "mnemonic_hash": "68d26d2bb31f30cefdaa856998912690"
   },
   "appreciate": {
@@ -856,7 +860,7 @@
     "mnemonic_hash": "f59661f241e8aa979cefe920d429c7c2"
   },
   "escape": {
-    "meaning_hash": "765e698efb64f69ad6878b2d6cfb3704",
+    "meaning_hash": "eb8ebf4031d764dd0005a4a4171a775e",
     "mnemonic_hash": "c7b04a6226aebdb29e16e0a86f990cee"
   },
   "especially": {
@@ -1084,7 +1088,7 @@
     "mnemonic_hash": "ed97c0b2037199841c85006913c33152"
   },
   "location": {
-    "meaning_hash": "8b3fbdf9908adc6e8e9c16350e697e7b",
+    "meaning_hash": "7f775e4dac6a99bd8c823a9261f054c8",
     "mnemonic_hash": "ce2b11109aed0f4765fbc42f0126900d"
   },
   "neglect": {
@@ -1432,7 +1436,7 @@
     "mnemonic_hash": "dac8d7b914049224e40c67f6940abf96"
   },
   "connect": {
-    "meaning_hash": "00666c800bec729e9a92d54dcd2a7291",
+    "meaning_hash": "0f4c207a6a583e23ad933fd5d4f0039b",
     "mnemonic_hash": "e14bb973aa8eb9bbcc6d801eb506e99f"
   },
   "conscious": {
@@ -1440,15 +1444,15 @@
     "mnemonic_hash": "5582fb4ac4933545eabb094ec6903558"
   },
   "continual": {
-    "meaning_hash": "faee120088034e1f765cc74a63cf9156",
+    "meaning_hash": "b9bdd7dff56975177342bfa92b60340c",
     "mnemonic_hash": "0a95fb8348c82530432af2b58f82a2f0"
   },
   "continue": {
-    "meaning_hash": "f30809dc25ba70a65963236988ca52f7",
+    "meaning_hash": "a15ee9596bb2e0755cdd100a3a9c9111",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "continuous": {
-    "meaning_hash": "352e740178188c2e3ef33bb16de9129f",
+    "meaning_hash": "b6d1c79122f2306be7e29ff1e00a52ce",
     "mnemonic_hash": "dd1f3dd991a96863b2549e39658914d9"
   },
   "dismiss": {
@@ -1456,31 +1460,31 @@
     "mnemonic_hash": "ed91ded961bbf345dd1110c1d2021750"
   },
   "disorder": {
-    "meaning_hash": "478d1abe6b16c60b30db11cea0e3ebdd",
+    "meaning_hash": "d88c668d0bb5cc9a8193cacb147a4fa3",
     "mnemonic_hash": "6d9a1804ae00dfd089e86e0267ec1ba3"
   },
   "disperse": {
-    "meaning_hash": "6e8dfd49c5a9e8ac7f91eb71dd26845d",
+    "meaning_hash": "a77914c025babb543c6763b4ba5e6729",
     "mnemonic_hash": "6e864d149b471655352d4639c5de32b3"
   },
   "displace": {
-    "meaning_hash": "353c70bf33fdc51cda2edfa39ca561a6",
+    "meaning_hash": "4e8c37609bbacf11c4952c6113670eb4",
     "mnemonic_hash": "07fc451de627244b223b6889962c0565"
   },
   "display": {
-    "meaning_hash": "d6d52ac51805f38d7b5a728b0d6c9250",
+    "meaning_hash": "80cf80ef1c97489f07ac02aef1bcb01b",
     "mnemonic_hash": "9f2bddbd28a44bbed9bf3effaffbcddb"
   },
   "distribute": {
-    "meaning_hash": "9cc13740edf1665cf20c9e1efce70abb",
+    "meaning_hash": "0ccb9b69727c5249d6f73d1aa4453484",
     "mnemonic_hash": "a45dd2a168c8223b34172f1b450888b5"
   },
   "distort": {
-    "meaning_hash": "43f8c6a09a803a35e9dc59ec83313c70",
+    "meaning_hash": "6ca9f4d8f3c097dd32ad80e0c2e31512",
     "mnemonic_hash": "34c72c3bf99ab65939d073fd654a8d54"
   },
   "distract": {
-    "meaning_hash": "4a4e6686b538bbbf4127f9dbaeca470a",
+    "meaning_hash": "00579eb04e10ae9e9b18984d615b6194",
     "mnemonic_hash": "47af937767940c6ffa43c7c4fee07b58"
   },
   "evolution": {
@@ -1488,23 +1492,23 @@
     "mnemonic_hash": "a8d6fd13a3b1ce39d8b3faee567243e2"
   },
   "evolve": {
-    "meaning_hash": "0cbc12a73de8ac65213c0f1531240aa3",
+    "meaning_hash": "8d1745bb43368c405351e5e9e26f400a",
     "mnemonic_hash": "1b982226d21a9d5b38746bc24933b7a7"
   },
   "exaggerate": {
-    "meaning_hash": "bac9d426ad633c7f838ef0dae64aac41",
+    "meaning_hash": "87ae4dcea2741d0b901d17a5d0394630",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "examine": {
-    "meaning_hash": "a4d421df769222e8f9d30567264c2bc8",
+    "meaning_hash": "0918f5189422764d1612d0649dbc6ad3",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "mock": {
-    "meaning_hash": "3fcf0514940c9f5c30fb44717e9a2924",
+    "meaning_hash": "38c034bc25399b3f33f50edcc88102e1",
     "mnemonic_hash": "2b60fa5df408ece356e6ecca0cb3903a"
   },
   "mode": {
-    "meaning_hash": "c3d30032dec3fc111af225daf2092d83",
+    "meaning_hash": "104c3979e831f5a93d97719c31adbb3b",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "model": {
@@ -1512,11 +1516,11 @@
     "mnemonic_hash": "0c38a3762ceabdb84a419d87daf5a5d1"
   },
   "moderate": {
-    "meaning_hash": "737a4c252e83ad33bb24545780bcf9dd",
+    "meaning_hash": "c72230c6e5aa82db14cef56faf0711a1",
     "mnemonic_hash": "159f9b3dfc595b81589354957024901e"
   },
   "modern": {
-    "meaning_hash": "ca075bc1f63e2065cbb18a8994f980fc",
+    "meaning_hash": "91bd84b758d53a59deaff52e77a28691",
     "mnemonic_hash": "e330be468127e27fe1644bd470955063"
   },
   "modest": {
@@ -1536,7 +1540,7 @@
     "mnemonic_hash": "ff984bb7f392a8b1ff6b6d75d78c97d1"
   },
   "preface": {
-    "meaning_hash": "9b68bf6cc93c3f474c3dd75b1da315b7",
+    "meaning_hash": "d117ba887598b4b80ff5d74d6ca32884",
     "mnemonic_hash": "78624e81ff64fa6e245e49304ad83b4d"
   },
   "preferable": {
@@ -1548,11 +1552,11 @@
     "mnemonic_hash": "453b2ab2ce4169baccad99dea9b7f2a7"
   },
   "prejudice": {
-    "meaning_hash": "e9e0a03f6d431ee9d71f1ebec490ced4",
+    "meaning_hash": "c89aab789dcb92268f4477f96c6a7f1c",
     "mnemonic_hash": "bebf87e98d52942fb39f8d1f445a65a2"
   },
   "preliminary": {
-    "meaning_hash": "d76cf9b0ea491e2ca2b7be5fa7cb1b34",
+    "meaning_hash": "6410573ffcf1c4f5ae0f26e470a78298",
     "mnemonic_hash": "56b7175cc8c39996d1361c3cd446edd1"
   },
   "premier": {
@@ -1564,15 +1568,15 @@
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "premium": {
-    "meaning_hash": "e646a243f066b9190ac56de2225d5bba",
+    "meaning_hash": "75669b2262a8c8ff6f64cee6fcc5ee83",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "preparation": {
-    "meaning_hash": "c93e1d23273de917b3bcb6fa4859af58",
+    "meaning_hash": "920fb29dad08ba26aa99a7c00e45442e",
     "mnemonic_hash": "c2a0234c657dcb689512d1705d13d519"
   },
   "reflect": {
-    "meaning_hash": "126ce4c593e04b9e2d79f2c98cb8c83c",
+    "meaning_hash": "3da5fb5478b7048cbeae4eba1cef773e",
     "mnemonic_hash": "a3b21fcd75a5c7d17decdf12b7a6124a"
   },
   "reform": {
@@ -1580,19 +1584,19 @@
     "mnemonic_hash": "a8a32d2a57c3a3812bd81bddb0a48e44"
   },
   "reject": {
-    "meaning_hash": "5391d1aa35475f2f230ce6833705aa5e",
+    "meaning_hash": "f469870e8560d5402bc96cd3e2c754c9",
     "mnemonic_hash": "ba002fee84b470f07fd571039df6932c"
   },
   "rejoice": {
-    "meaning_hash": "47bbffcc974c659c0d134f9a810d78e3",
+    "meaning_hash": "3e8d1fbdad83b5e6b4fe547fe8753e0f",
     "mnemonic_hash": "2d5e10d414bf98b4a3fa731a987f7ed3"
   },
   "relate": {
-    "meaning_hash": "c47dfd24859ac994610a313511c8abf6",
+    "meaning_hash": "4a40455d33672f278ca357e44c0353cd",
     "mnemonic_hash": "efee7584f7c954896b8d047123cbd1cf"
   },
   "relation": {
-    "meaning_hash": "55b8a69aaa70b162096b08e0e2afb5be",
+    "meaning_hash": "37bce81c677351774e0928533db7431a",
     "mnemonic_hash": "8a679a9a1de3dfe8c668e9c3629f746e"
   },
   "relationship": {
@@ -1604,15 +1608,15 @@
     "mnemonic_hash": "3b42bed38c3f1dc05621863c4d37ac13"
   },
   "relativity": {
-    "meaning_hash": "f3864fd97b787bd5e5790d5a63317f65",
+    "meaning_hash": "e221ad69d4f6c2727788ede427669199",
     "mnemonic_hash": "9c00096a80b63ba8e5446ffc231337a8"
   },
   "relevant": {
-    "meaning_hash": "9002a2c847a0836516f09e9c5b83c8b7",
+    "meaning_hash": "b5bc9b380024b3cffa1c09f286bd72a4",
     "mnemonic_hash": "b5f27c4a0efcc3e86d78d23855c2e2da"
   },
   "overlook": {
-    "meaning_hash": "bba78aff6d248c30567ff85c0e737050",
+    "meaning_hash": "cdca90c40ed0b4b39bf7a270212ec1c1",
     "mnemonic_hash": "3f48482540e0221503d7e8e488a37120"
   },
   "overseas": {
@@ -1620,7 +1624,7 @@
     "mnemonic_hash": "a43e559c8500c687a0fab2707a6662a9"
   },
   "pose": {
-    "meaning_hash": "987c70cf3e72c1627c38c7310e2057e0",
+    "meaning_hash": "d9b6f35b4c104be08033d667a302ff05",
     "mnemonic_hash": "618493fb7d5a2fc97e0afc814d304f45"
   },
   "position": {
@@ -1632,23 +1636,23 @@
     "mnemonic_hash": "d226ace08e270b870f863ba85bcc343c"
   },
   "possess": {
-    "meaning_hash": "2692830dcb5626d78cd5c1ed84368ef0",
+    "meaning_hash": "92055474227680d3ee521f23dc5b51fc",
     "mnemonic_hash": "e54972a8a0fbdcec8c74ab352ef62d12"
   },
   "possession": {
-    "meaning_hash": "689bb90664530ec05a9dd810aff1a466",
+    "meaning_hash": "cb4c3273b723acdea3b9b8c7b1c02116",
     "mnemonic_hash": "b8e5a94f99b4e54e2fa2d2b108cf0458"
   },
   "dilute": {
-    "meaning_hash": "45c4ddd9ec343ea80670b43bfa8e2171",
+    "meaning_hash": "825eb30f55dab53f0166111e42fe19a9",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "dim": {
-    "meaning_hash": "761501363652432edbd7323f5baf64cb",
+    "meaning_hash": "b6ac07cbd556842bf80bc08c41c47344",
     "mnemonic_hash": "c97cba97df679d7e9ac81d2e02afffe1"
   },
   "diminish": {
-    "meaning_hash": "2bb98bf3acc184acadd1c1d4c3d9cc84",
+    "meaning_hash": "acc624b2f59f6638d9bbffd20209531f",
     "mnemonic_hash": "dbc39ce3b828a48d9235649f281eebb4"
   },
   "amateur": {
@@ -1660,43 +1664,43 @@
     "mnemonic_hash": "2a0f7c26b04808af6fa250121fc601ef"
   },
   "ambiguous": {
-    "meaning_hash": "f99ee1f561f17064e902920887422cff",
+    "meaning_hash": "1a74b44a004980b984896b6574bdcaa3",
     "mnemonic_hash": "fa28a41f897e86abd6f1670daf29403f"
   },
   "ambition": {
-    "meaning_hash": "7437fcedbb688f43055ce724fe98de7d",
+    "meaning_hash": "248b4153e95eee714bbe6af073d53436",
     "mnemonic_hash": "feed4935e50489f2295c9cdfd508434c"
   },
   "ambitious": {
-    "meaning_hash": "821d2f1f8b47db85e1a1c0c0b0885d3c",
+    "meaning_hash": "fe0309563c8da2d72bf44e9eaddf77bc",
     "mnemonic_hash": "571a80bc4232e08ac92b40952a89f1fe"
   },
   "bubble": {
-    "meaning_hash": "0c1cc2c400f146c5baf9a88c421713c2",
+    "meaning_hash": "403d7ef432fde93a9ae73e27f3e78a18",
     "mnemonic_hash": "d9d1e05a5096fda53784635575ec95ba"
   },
   "budget": {
-    "meaning_hash": "5cc049f1b7763290b2c9c60f8f54744a",
+    "meaning_hash": "1ae53c7838828442f0ad8a230cf4d51d",
     "mnemonic_hash": "fecd311dab63de5c983f5be78afeb52f"
   },
   "build": {
-    "meaning_hash": "6b8a38be1018934309aa16f313f76d94",
+    "meaning_hash": "5faf0751d1688399e08793b075147b2a",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "business": {
-    "meaning_hash": "d63c3da81f443ba06c6189cef195aca3",
+    "meaning_hash": "b6d4e723619035daad0f173ec9ca200b",
     "mnemonic_hash": "38404e891264b69f0a34ee24330717d9"
   },
   "compress": {
-    "meaning_hash": "c31095f29d864a5be373c5be02b6554f",
+    "meaning_hash": "34e6a4be2e5c314cd41708bfa0b45572",
     "mnemonic_hash": "025ae9c8faca62c32293d4d4adcc414a"
   },
   "comprise": {
-    "meaning_hash": "53b074c5414b919941388709fead4c05",
+    "meaning_hash": "f2c41185ebcd6cb74faa65601798e53f",
     "mnemonic_hash": "031221533b681a904c2774798dfc9f32"
   },
   "compromise": {
-    "meaning_hash": "d891d33199bcedcce6e5c3df15561060",
+    "meaning_hash": "52384cbc055086800d803523b395d05b",
     "mnemonic_hash": "91c9b9a55030ff403e3cf22ab65b1713"
   },
   "conceive": {
@@ -1704,7 +1708,7 @@
     "mnemonic_hash": "9bed163c8987f0e80be649a304bd6b0c"
   },
   "concentrate": {
-    "meaning_hash": "28c1ce3060f96b9420b2eabd87e71f82",
+    "meaning_hash": "8f68e601a85f0435e6f0d54f5422b4bb",
     "mnemonic_hash": "f55ba047299adb86ea286fa9f4f7dbbc"
   },
   "concept": {
@@ -1716,19 +1720,19 @@
     "mnemonic_hash": "c1139c39b047944b08c7cfa6e58df75d"
   },
   "concern": {
-    "meaning_hash": "7e44f36d92358792451610f87ab86de9",
+    "meaning_hash": "e51e3e9338f1441c798186fe1a8e5b7a",
     "mnemonic_hash": "0e351127b8c1214a87c74fe35926f0e9"
   },
   "concise": {
-    "meaning_hash": "1ebd336fce3838172125b56d581e19d9",
+    "meaning_hash": "affbaf6239f3ba2b0386afceefa8b11f",
     "mnemonic_hash": "7ad9cb66539a5a9a0d24dd7cd49e3b73"
   },
   "concrete": {
-    "meaning_hash": "64e1efa8da6e92f989f12a63fc01b70b",
+    "meaning_hash": "92e289739abd5adcec6ce0f2a0a615ae",
     "mnemonic_hash": "3abb1dc041317d9a732f6702a06e4d6f"
   },
   "conclude": {
-    "meaning_hash": "3760c5b0c3d3dac6446ddd1361cb1662",
+    "meaning_hash": "2c589bbf0a3b31e3d03e4cb7c450abf3",
     "mnemonic_hash": "bd7af2525bf6c77e5d4be2e85006a79a"
   },
   "conclusion": {
@@ -1740,11 +1744,11 @@
     "mnemonic_hash": "b01a469b7406d4e5d97da1c7bfb9703c"
   },
   "conference": {
-    "meaning_hash": "ba624fefdee4527ee7e70deb1ad3f23b",
+    "meaning_hash": "6133c90b1c3427904405b8aaf4c34649",
     "mnemonic_hash": "8cb9ba0ef5926dc295eb1e49ee95bc08"
   },
   "confess": {
-    "meaning_hash": "d47f0e276aef073d79d32d3eee4e9dea",
+    "meaning_hash": "f288616b24631095e7157e45a9e5ebb4",
     "mnemonic_hash": "b2e3361995e0a745b86a3f26de9b11e3"
   },
   "epic": {
@@ -1756,19 +1760,19 @@
     "mnemonic_hash": "ba475aec347ffa1757433798a0b9de89"
   },
   "episode": {
-    "meaning_hash": "100adf14e492ba825df8271a416732f5",
+    "meaning_hash": "32b43d066d0e474312aa8ffea8d09125",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "epoch": {
-    "meaning_hash": "15a20dcffd3e93d60149743a0b22e510",
+    "meaning_hash": "79ab462b675f1cdd5e6acf7fc4c5352b",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "indifferent": {
-    "meaning_hash": "ab59b159569ea8f28fea90902cf4b60f",
+    "meaning_hash": "6a19829279e1d56c35ccc9658da153b2",
     "mnemonic_hash": "3c3915e7d41b5bba6fb7a524663864b9"
   },
   "indignant": {
-    "meaning_hash": "3e101b89b197b8c4bf34736c820fd37e",
+    "meaning_hash": "7f4f9cdb81d83f203677d3280aaf9e08",
     "mnemonic_hash": "003e003b430e42be44cbfe8568dc31a6"
   },
   "indignation": {
@@ -1776,7 +1780,7 @@
     "mnemonic_hash": "2f7a2eb0a437cacdf026dfd122093e9e"
   },
   "indispensable": {
-    "meaning_hash": "2d205e3deba3c237c4e4f2d1a97013e9",
+    "meaning_hash": "d691fba7961ee78f593f6b2d521f725f",
     "mnemonic_hash": "1e04ff24647448e4af92a165cc77bf35"
   },
   "individual": {
@@ -1788,19 +1792,19 @@
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "message": {
-    "meaning_hash": "6d12b43a264406538cc41bed537db794",
+    "meaning_hash": "9476f722dd8cc8c0d681786352b32096",
     "mnemonic_hash": "3caced2a132858bc1fe706bc7a9cf6cd"
   },
   "messenger": {
-    "meaning_hash": "22567ee63b0b1f1c056438e57c5e203c",
+    "meaning_hash": "58895ecf2165211a1e6cbacddd61f621",
     "mnemonic_hash": "26657be1fbed329b69d200edd82098ad"
   },
   "method": {
-    "meaning_hash": "aef19f3cba3c2e27999f34bcd7e37084",
+    "meaning_hash": "3a3d2db7f3dbfefc5fb9b334f3b5f1c2",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "militant": {
-    "meaning_hash": "6e2e9254f89b6b9c968c31e912eafd00",
+    "meaning_hash": "cc7e788cc8098441bbccb42ab6cae823",
     "mnemonic_hash": "9aef33a71dff7d0bd13846147dd35819"
   },
   "military": {
@@ -1812,35 +1816,35 @@
     "mnemonic_hash": "2231853bfd00f1c54faab311412b06b9"
   },
   "redeem": {
-    "meaning_hash": "02e9a5028879de14fc2e04f0f55702d5",
+    "meaning_hash": "dc3caccf879fb9115eb66d078bf0f388",
     "mnemonic_hash": "428068d551015c35fff63f3072d83662"
   },
   "reduce": {
-    "meaning_hash": "4d00951065d57936cf3c63cac08ba2c2",
+    "meaning_hash": "abd1aaf8374a3901ff73dd57b5a38154",
     "mnemonic_hash": "fef6742c70f2a314b66ce7040139578a"
   },
   "reduction": {
-    "meaning_hash": "16e8e198a3a3e8ca499221e1a73d7994",
+    "meaning_hash": "430e9e631c522938b03bf04273da1054",
     "mnemonic_hash": "e879139f2b9bad426a8ac5f72ee2146c"
   },
   "refer": {
-    "meaning_hash": "f5e208d899f68faa41ce256c77c7484f",
+    "meaning_hash": "f6b9390b89ff0e20928a54277583a166",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "reference": {
-    "meaning_hash": "32701933d82d3b6dbae84ff4bbd38507",
+    "meaning_hash": "383d40e42cb8fd407a98c146843c410b",
     "mnemonic_hash": "02c62b25391bb45e08e1230dd524b551"
   },
   "subject": {
-    "meaning_hash": "00bfc6c92ae29a4c469bc3860241ae8d",
+    "meaning_hash": "9ae6b161b351ac31ed02ac96a1541a67",
     "mnemonic_hash": "caa152ed23c330eca50aa3dc366f4e85"
   },
   "subjective": {
-    "meaning_hash": "7b3c29891131e74d82f93e12e8123b91",
+    "meaning_hash": "8f767b1afa8b5281aa8bb5f18d12a8ac",
     "mnemonic_hash": "84346b7748089366bc8b750babe3284f"
   },
   "spoil": {
-    "meaning_hash": "d5d50add8711a94349282fa518dd506c",
+    "meaning_hash": "647d298e96f40b33012022bfb13a80d9",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "sponsor": {
@@ -1848,11 +1852,11 @@
     "mnemonic_hash": "05ae6d2189933b0396b8bba64493d5cf"
   },
   "spread": {
-    "meaning_hash": "21d3494208c8422f3979a6fa1e04f533",
+    "meaning_hash": "4da2f639fb37fe49d1bf4c06261ec2c0",
     "mnemonic_hash": "599ae86638672f8838f996fe98bd8bb2"
   },
   "spur": {
-    "meaning_hash": "0353ccb901d1c5a41354f5c3933783b9",
+    "meaning_hash": "efc7f731c214209d42a493976cbedd6b",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "spy": {
@@ -1860,7 +1864,7 @@
     "mnemonic_hash": "76be98dba0b4cd33d4bdb84a090c32ca"
   },
   "stability": {
-    "meaning_hash": "bbbf383805293e52f60d141b3b85488d",
+    "meaning_hash": "ed62d68617d24243a05260b7af26c170",
     "mnemonic_hash": "0d494ae4835fcc4e0a37f4b76eee1c63"
   },
   "stable": {
@@ -1875,20 +1879,12 @@
     "meaning_hash": "55f896e49b66048dc06b0845be45d08f",
     "mnemonic_hash": "e28971a3fd7d30c7d8f4d12103da2615"
   },
-  "deo": {
-    "meaning_hash": "30ecbf7cb0bf8d2167b04e90346b1222",
-    "mnemonic_hash": "b051242268be300ca48c692f1286bede"
-  },
-  "ur": {
-    "meaning_hash": "1a66d0c16c68169f2235fdd40baa0f78",
-    "mnemonic_hash": "8598e237aae06044e498c16a70e26dad"
-  },
   "radiate": {
-    "meaning_hash": "3784554decd57b2af07ae10cb251bd8b",
+    "meaning_hash": "b2096381482a474324347931ecb767ec",
     "mnemonic_hash": "00065148a3be19ad80dd34a040609862"
   },
   "radiant": {
-    "meaning_hash": "acbea36929097eef69435c027a3fb710",
+    "meaning_hash": "a4cb0de137f064f82cdc22287ac6181b",
     "mnemonic_hash": "ecbb6b62f1004a4335259ed6029aaef3"
   },
   "radical": {
@@ -1896,7 +1892,7 @@
     "mnemonic_hash": "daf411c00996f7f8c23eac86086faff6"
   },
   "object": {
-    "meaning_hash": "debe36ef8c8d75530e1c21547d01049b",
+    "meaning_hash": "4a1e987dd328ce07e5b5f93669555b82",
     "mnemonic_hash": "58f8bc19325b996365f808bee20c6487"
   },
   "objective": {
@@ -1912,11 +1908,11 @@
     "mnemonic_hash": "ba4ad0b2cea5224f90f7f51e3db14fcb"
   },
   "oblige": {
-    "meaning_hash": "2abec5f1ad1af82aed29a59bc367ed21",
+    "meaning_hash": "bfb84b5b180240bedb62b4d583588c31",
     "mnemonic_hash": "4a7f5144eca537b351f9bd5945c3bed7"
   },
   "obscure": {
-    "meaning_hash": "7a8b79d49ea9fff805b040e9757d3fbe",
+    "meaning_hash": "3a5a4f3252ccc9bcfce6adeafb1602dd",
     "mnemonic_hash": "80b2a4bd15bc576f31a01f4b00bb60dc"
   },
   "observation": {
@@ -4012,7 +4008,7 @@
     "mnemonic_hash": "714aece87327a1d1bf5f3d7dbd31fc67"
   },
   "department": {
-    "meaning_hash": "5bbb9591ecab4c5eb265a24e0b660ed4",
+    "meaning_hash": "6c2c48b1a11ba7c30fb0fe543226a9b1",
     "mnemonic_hash": "de04206404c27b3608a6adae16d8fe4e"
   },
   "depend": {
@@ -7312,7 +7308,7 @@
     "mnemonic_hash": "04568a316b67d4ff8724a0eb910c14d5"
   },
   "tide": {
-    "meaning_hash": "1826ef145504f3debc7825de9b99e702",
+    "meaning_hash": "b2defcd3490315e2365cffbf1abe465a",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "tidy": {
