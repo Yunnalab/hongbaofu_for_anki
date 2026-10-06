@@ -6968,7 +6968,7 @@
     "mnemonic_hash": "60024747ed54c87a2c30b4d42ca6ad7d"
   },
   "supply": {
-    "meaning_hash": "ec4a155c7e9359c3a32bab6214438848",
+    "meaning_hash": "8b084d9c8e1751533180242e86cff669",
     "mnemonic_hash": "a76dfdaeaf0905aac9a29e94880be8c8"
   },
   "support": {
@@ -7076,7 +7076,7 @@
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "item": {
-    "meaning_hash": "82b30c8744ef053c7afb1cfecc709773",
+    "meaning_hash": "be3baffa0c4650dbac7929f0131ce796",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "overturn": {
@@ -7348,7 +7348,7 @@
     "mnemonic_hash": "c4a9d4fd1623c8eb26152b736f4784a9"
   },
   "between": {
-    "meaning_hash": "db011c71ee3a7fad9851402d2d7a8178",
+    "meaning_hash": "dc3b7684f2b9dab3b015da7be45709be",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "beware": {
@@ -7546,10 +7546,6 @@
   "pool": {
     "meaning_hash": "0292d3064d0258f29eb383179d024089",
     "mnemonic_hash": "244cd5b8632a5b4d34c47f2c3d1f466e"
-  },
-  "remark": {
-    "meaning_hash": "735c2b782a1da2920826682d6cf3b53d",
-    "mnemonic_hash": "ac222def8a0286fbac4fd4608fc760f3"
   },
   "remarkable": {
     "meaning_hash": "59a0ade860916d1e4eb339b1407b9142",
@@ -8668,8 +8664,8 @@
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "nonsense": {
-    "meaning_hash": "f606dd72f6885167c2e882c13c9e9ad9",
-    "mnemonic_hash": "4387f156ccc4be37944acda98b51baa5"
+    "meaning_hash": "93598aa9c6dcf52993d036217060bb99",
+    "mnemonic_hash": "2f7b9c1a6659fa0d573a69842ab3cb30"
   },
   "oral": {
     "meaning_hash": "57d5bdc6361e2adf6258893feadf8fd2",
