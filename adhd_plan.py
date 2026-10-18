@@ -34,11 +34,12 @@ COLLECTION = os.path.join(ANKI_DIR, "账户 1", "collection.anki2")
 PREFS = os.path.join(ANKI_DIR, "prefs21.db")
 BACKUP_ROOT = os.path.join(BASE, "backups")
 
-PRESET_NAME = "ADHD · 20分钟"
+PRESET_NAME = "ADHD · 每日"
+OLD_PRESET_NAMES = ("ADHD · 20分钟", "ADHD · 每日")
 TIERS = {
-    "low": {"new_per_day": 3, "reviews_per_day": 60, "label": "低电量"},
-    "std": {"new_per_day": 8, "reviews_per_day": 150, "label": "标准"},
-    "sprint": {"new_per_day": 20, "reviews_per_day": 200, "label": "冲刺"},
+    "low": {"new_per_day": 10, "reviews_per_day": 80, "label": "低电量"},
+    "std": {"new_per_day": 30, "reviews_per_day": 180, "label": "标准"},
+    "sprint": {"new_per_day": 50, "reviews_per_day": 250, "label": "冲刺"},
 }
 
 BASE_SETTINGS = {
@@ -140,7 +141,7 @@ def ensure_preset(cur, tier: dict) -> int:
     rows = cur.fetchall()
     preset_id = None
     for pid, name, blob in rows:
-        if name == PRESET_NAME:
+        if name in OLD_PRESET_NAMES:
             cfg = DeckConfig.Config()
             cfg.ParseFromString(blob)
             preset_id = pid
