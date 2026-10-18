@@ -116,7 +116,9 @@ AwesomeTTS 不支持手机端。替代方案：
 - **一天只点一个牌组**：配额是按点开的牌组算的，再点第二个（`基础词` 或某个单元）
   就等于再领一份。已顺手开启「Limits Start From Top」兜底。
 - **到上限就关**，Anki 自己会停；做不完的由 FSRS 重排，逾期不会雪崩。
-- **按电量选档**：`python3 adhd_plan.py --tier low|std|sprint`（低电量 10+100 / 标准 30+280 / 冲刺 50+400）。
+- **按电量选档**（一次只跑一条，`--tier` 后面只能跟一个值）：
+  `python3 adhd_plan.py --tier low`（10+100）· `--tier std`（30+280，当前）· `--tier sprint`（50+400）。
+  写成 `--tier low|std|sprint` 会被 zsh/bash 当成管道，报 `std: 未找到命令`。
 
 改造前实测每天进 100+ 新词、日均 ~600 次复习、约一半按「忘记」——配额问题，不是自制力问题。
 新词本身不贵（30 个≈10 分钟），真正占时间的是复习。Anki 手册的经验值是每 20 个新词
@@ -152,6 +154,10 @@ python3 adhd_plan.py --dry-run              # 先在副本上演练
 python3 adhd_plan.py --tier std             # 应用标准档（新词 30 / 复习 280）
 python3 adhd_plan.py --tier low             # 低电量档（新词 10 / 复习 100）
 python3 adhd_plan.py --tier sprint          # 冲刺档（新词 50 / 复习 400）
+
+# 调 Speed Streak 插件（1237336370）的计时：需要先完全退出 Anki
+python3 adhd_plan.py --speed-streak tune    # 25s/25s，红宝书卡 25s/35s，超时不断 streak
+python3 adhd_plan.py --speed-streak off     # 直接关掉这个插件
 
 ```
 

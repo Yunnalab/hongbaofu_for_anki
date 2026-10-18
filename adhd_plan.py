@@ -29,6 +29,8 @@ import sys
 import time
 
 BASE = os.path.dirname(os.path.abspath(__file__))
+ADDON_DIR = os.path.join(os.path.expanduser("~/.local/share/Anki2"), "addons21", "1237336370")
+SPEED_STREAK_CFG = os.path.join(ADDON_DIR, "config.json")
 ANKI_DIR = os.path.expanduser("~/.local/share/Anki2")
 COLLECTION = os.path.join(ANKI_DIR, "账户 1", "collection.anki2")
 PREFS = os.path.join(ANKI_DIR, "prefs21.db")
@@ -128,6 +130,58 @@ def set_field(cfg, name: str, value) -> None:
         container.extend(value)
         return
     setattr(cfg, name, value)
+
+
+def tune_speed_streak(mode: str) -> None:
+    """调 Speed Streak 插件（1237336370）的计时参数。
+
+    默认配置是 12 秒看题 / 8 秒看答案，对红宝书卡片（音标 + 完整释义 + 助记）
+    太短，会逼你「没读完就按 Good」；时间到还会断 streak，进一步诱导乱评。
+    """
+    import json
+
+    if not os.path.exists(SPEED_STREAK_CFG):
+        sys.exit(f"没找到 Speed Streak 配置：{SPEED_STREAK_CFG}")
+    if anki_running():
+        sys.exit("Anki 正在运行，改插件配置会被覆盖。请先完全退出 Anki。")
+
+    with open(SPEED_STREAK_CFG) as f:
+        cfg = json.load(f)
+
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    dest = os.path.join(BACKUP_ROOT, f"speed-streak-{stamp}")
+    os.makedirs(dest, exist_ok=True)
+    shutil.copy2(SPEED_STREAK_CFG, os.path.join(dest, "config.json"))
+
+    if mode == "off":
+        cfg["enabled"] = False
+    else:
+        cfg["enabled"] = True
+        cfg["question_seconds"] = 25        # 回忆释义的时间
+        cfg["answer_seconds"] = 25          # 读释义 + 助记 + 听发音的时间
+        cfg["answer_timeout_breaks_streak"] = False  # 超时不断 streak，别逼你抢答
+        cfg["haptics_enabled"] = False      # Linux 桌面基本没有振动，省事
+        cfg["timer_number_mode"] = "whole" if False else cfg.get("timer_number_mode", "decimal")
+        rules = dict(cfg.get("special_timer_rules") or {})
+        rules["tags_enabled"] = True
+        tag_rules = [r for r in (rules.get("tags") or []) if r.get("tag") != "红宝书"]
+        tag_rules.append(
+            {
+                "tag": "红宝书",
+                "enabled": True,
+                "question_seconds": 25,
+                "answer_seconds": 35,
+                "question_untimed": False,
+                "answer_untimed": False,
+            }
+        )
+        rules["tags"] = tag_rules
+        cfg["special_timer_rules"] = rules
+
+    with open(SPEED_STREAK_CFG, "w") as f:
+        json.dump(cfg, f, ensure_ascii=False, indent=2)
+
+    print(f"Speed Streak 已{'关闭' if mode == 'off' else '调参'}，原配置备份在 {dest}")
 
 
 def red_book_decks(cur) -> list[tuple[int, str]]:
@@ -243,7 +297,16 @@ def main() -> None:
     ap.add_argument("--db", default=COLLECTION, help="collection.anki2 路径")
     ap.add_argument("--dry-run", action="store_true", help="在 /tmp 副本上演练，不动真实数据")
     ap.add_argument("--force", action="store_true", help="即使 Anki 正在运行也强行写入")
+    ap.add_argument(
+        "--speed-streak",
+        choices=["tune", "off"],
+        help="调 Speed Streak 插件计时（tune）或直接关掉它（off），不动牌组",
+    )
     args = ap.parse_args()
+
+    if args.speed_streak:
+        tune_speed_streak(args.speed_streak)
+        return
 
     if not os.path.exists(args.db):
         sys.exit(f"找不到 {args.db}")
