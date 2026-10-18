@@ -32,6 +32,8 @@ R
 | `fetch_youdao.py` | 从有道词典补全缺失释义 |
 | `gen_mnemonics.py` | 基于词根词缀生成中文助记（覆盖 72%） |
 | `generate_anki_decks.py` | genanki 生成全部 apkg 牌组 |
+| `adhd_plan.py` | 把牌组选项改成 ADHD 友好档（新词 8/复习 150 等），可重复运行 |
+| `背诵计划.md` | ADHD 版背诵计划：配额、三档、断更恢复、周日保养 |
 
 ## 卡片字段
 
@@ -96,14 +98,21 @@ AwesomeTTS 不支持手机端。替代方案：
 
 | 插件 | 代码 | 说明 |
 |------|------|------|
-| Review Heatmap | `1771074083` | 主界面显示学习热力图 |python3 sync_from_anki.py --yes
+| Review Heatmap | `1771074083` | 主界面显示学习热力图 |
 
+## 学习建议（ADHD 版，已生效）
 
-## 学习建议
+牌组选项预设已改为「ADHD · 20分钟」：**新词 8/天 + 复习 150/天**，约 15~20 分钟
+做完。完整计划见 [`背诵计划.md`](背诵计划.md)。
 
-- **每日新卡**：20~30 张，按 56 单元约 3~4 个月完成一轮
-- **复习优先**：Anki 自动按间隔重复算法安排，务必完成每日复习
-- **单元学习**：在牌组列表展开子牌组，按单元逐日推进
+三条硬规则：
+
+- **一天只开一个单元牌组**（如 `必考词::Unit 07`）。点父牌组「红宝书考研词汇」时，
+  56 个子牌组的上限会叠加，又变成几百张。
+- **到上限就关**，Anki 自己会停；做不完的由 FSRS 重排，逾期不会雪崩。
+- **按电量选档**：`python3 adhd_plan.py --tier low|std|sprint`（低电量 3+60 / 标准 8+150 / 冲刺 20+200）。
+
+改造前实测每天进 100+ 新词、日均 ~600 次复习、约一半按「忘记」——配额问题，不是自制力问题。
 
 ## 数据详情
 
@@ -129,6 +138,11 @@ uv run --with genanki python generate_anki_decks.py
 
 # 将你在anki对牌组的修改同步到apkg本地包
 python3 sync_from_anki.py --yes
+
+# 调整背诵计划档位（会先备份 collection 到 backups/）
+python3 adhd_plan.py --dry-run              # 先在副本上演练
+python3 adhd_plan.py --tier std             # 应用标准档（新词 8 / 复习 150）
+python3 adhd_plan.py --tier low             # 低电量档（新词 3 / 复习 60）
 
 ```
 
