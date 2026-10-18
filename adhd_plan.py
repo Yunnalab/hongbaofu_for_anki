@@ -37,9 +37,9 @@ BACKUP_ROOT = os.path.join(BASE, "backups")
 PRESET_NAME = "ADHD · 每日"
 OLD_PRESET_NAMES = ("ADHD · 20分钟", "ADHD · 每日")
 TIERS = {
-    "low": {"new_per_day": 10, "reviews_per_day": 80, "label": "低电量"},
-    "std": {"new_per_day": 30, "reviews_per_day": 180, "label": "标准"},
-    "sprint": {"new_per_day": 50, "reviews_per_day": 250, "label": "冲刺"},
+    "low": {"new_per_day": 10, "reviews_per_day": 100, "label": "低电量"},
+    "std": {"new_per_day": 30, "reviews_per_day": 280, "label": "标准"},
+    "sprint": {"new_per_day": 50, "reviews_per_day": 400, "label": "冲刺"},
 }
 
 BASE_SETTINGS = {
@@ -193,6 +193,18 @@ def assign_preset(cur, deck_ids: list[int], preset_id: int) -> int:
     return changed
 
 
+def enable_parent_limit_hardening(cur) -> None:
+    """打开「Limits Start From Top」：点任何子牌组时父牌组的上限也生效。
+
+    这样即使不小心点进了某个单元牌组，也不会拿到一整份额外配额。
+    """
+    cur.execute(
+        "INSERT INTO config (KEY, usn, mtime_secs, val) VALUES ('applyAllParentLimits',0,?,?) "
+        "ON CONFLICT(KEY) DO UPDATE SET mtime_secs=excluded.mtime_secs, val=excluded.val",
+        (now_secs(), b"true"),
+    )
+
+
 def summarize(cur) -> None:
     cur.execute("SELECT id, name, kind FROM decks")
     rows = cur.fetchall()
@@ -259,6 +271,7 @@ def main() -> None:
     preset_id = ensure_preset(cur, tier)
     decks = red_book_decks(cur)
     changed = assign_preset(cur, [i for i, _ in decks], preset_id)
+    enable_parent_limit_hardening(cur)
     cur.execute("UPDATE col SET mod=? WHERE id=1", (now_ms(),))
     conn.commit()
 
@@ -269,7 +282,8 @@ def main() -> None:
     summarize(cur)
 
     cur.execute("PRAGMA integrity_check")
-    print("\nintegrity_check:", cur.fetchone()[0])
+    print("\n「Limits Start From Top」已开启：点子牌组时父牌组的上限也生效")
+    print("integrity_check:", cur.fetchone()[0])
     conn.close()
 
     if args.dry_run:
