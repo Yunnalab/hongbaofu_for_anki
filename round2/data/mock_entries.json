@@ -1,0 +1,990 @@
+{
+  "meta": {
+    "source": "MOCK — 用于自测，不是红宝书原文",
+    "pdf": "mock.pdf",
+    "pages_ocr": 0,
+    "generated": "2026-11-04T00:00:00"
+  },
+  "entries": [
+    {
+      "word": "strive",
+      "phonetic": "straɪv",
+      "pos": "v.",
+      "section": "基础词",
+      "unit": 27,
+      "pdf_pages": [
+        232
+      ],
+      "mnemonic": "strive 与 drive 同源：拼命驱使自己 → 努力奋斗",
+      "senses": [
+        {
+          "pos": "v.",
+          "items": [
+            "①努力，奋力，力求：~ for perfection 力求完美",
+            "②斗争，反抗：~ against injustice 与不公正作斗争"
+          ]
+        }
+      ],
+      "syn": [
+        "endeavor",
+        "struggle",
+        "labor"
+      ],
+      "ant": [
+        {
+          "word": "surrender",
+          "pos": "v.",
+          "meaning": "放弃，屈服"
+        }
+      ],
+      "deriv": [
+        {
+          "word": "striving",
+          "phonetic": "ˈstraɪvɪŋ",
+          "pos": "n.",
+          "meaning": "努力，奋斗"
+        },
+        {
+          "word": "striver",
+          "phonetic": "ˈstraɪvər",
+          "pos": "n.",
+          "meaning": "奋斗者"
+        }
+      ],
+      "phrases": [
+        {
+          "en": "strive for sth.",
+          "zh": "力求得到某物"
+        },
+        {
+          "en": "strive against sth.",
+          "zh": "与某事物作斗争"
+        }
+      ],
+      "examples": [
+        {
+          "en": "We must ~ for excellence in everything we do.",
+          "zh": "我们做任何事都必须力求卓越。"
+        },
+        {
+          "en": "The small nation strove against colonial rule for decades.",
+          "zh": "这个小国与殖民统治斗争了几十年。"
+        }
+      ],
+      "ocr_confidence": 0.98,
+      "flags": []
+    },
+    {
+      "word": "bear",
+      "phonetic": "bɛr",
+      "pos": "n./v.",
+      "section": "基础词",
+      "unit": 19,
+      "pdf_pages": [
+        195
+      ],
+      "mnemonic": null,
+      "senses": [
+        {
+          "pos": "n.",
+          "items": [
+            "熊"
+          ]
+        },
+        {
+          "pos": "v.",
+          "items": [
+            "①忍受，容忍：can't ~ to do sth. 不忍心做某事",
+            "②负担，承担：~ the cost 承担费用",
+            "③结（果实），生（子女）"
+          ]
+        }
+      ],
+      "syn": [
+        "endure",
+        "tolerate",
+        "carry"
+      ],
+      "ant": [],
+      "deriv": [
+        {
+          "word": "bearable",
+          "phonetic": "ˈberəbl",
+          "pos": "adj.",
+          "meaning": "可忍受的"
+        },
+        {
+          "word": "unbearable",
+          "phonetic": "ʌnˈberəbl",
+          "pos": "adj.",
+          "meaning": "无法忍受的"
+        }
+      ],
+      "phrases": [
+        {
+          "en": "bear in mind",
+          "zh": "记住，牢记"
+        },
+        {
+          "en": "bear out",
+          "zh": "证实，证明"
+        }
+      ],
+      "examples": [
+        {
+          "en": "She bore the pain without a single complaint.",
+          "zh": "她毫无怨言地忍受着疼痛。"
+        }
+      ],
+      "ocr_confidence": 0.95,
+      "flags": []
+    },
+    {
+      "word": "crisis",
+      "phonetic": "ˈkraɪsəs",
+      "pos": "n.",
+      "section": "必考词",
+      "unit": 23,
+      "pdf_pages": [
+        96
+      ],
+      "mnemonic": "cri（判断）+ sis → 需要做出判断的时刻 → 危机",
+      "senses": [
+        {
+          "pos": "n.",
+          "items": [
+            "①危机，紧要关头：economic ~ 经济危机",
+            "②转折点"
+          ]
+        }
+      ],
+      "syn": [
+        "emergency",
+        "juncture"
+      ],
+      "ant": [],
+      "deriv": [
+        {
+          "word": "critical",
+          "phonetic": "ˈkrɪtɪkl",
+          "pos": "adj.",
+          "meaning": "危急的；批评的；关键的"
+        }
+      ],
+      "phrases": [
+        {
+          "en": "in crisis",
+          "zh": "处于危机之中"
+        }
+      ],
+      "examples": [],
+      "ocr_confidence": 0.93,
+      "flags": [
+        "no_examples"
+      ]
+    },
+    {
+      "word": "hypothesis",
+      "phonetic": "haɪˈpɑθəsəs",
+      "pos": "n.",
+      "section": "基础词",
+      "unit": 29,
+      "pdf_pages": [
+        239
+      ],
+      "mnemonic": "hypo（下面）+ thesis（放置）→ 放在下面作为基础 → 假说",
+      "senses": [
+        {
+          "pos": "n.",
+          "items": [
+            "（学说的）假说，假设；（逻辑的）前提",
+            "（凭空的）猜想，猜测"
+          ]
+        }
+      ],
+      "syn": [
+        "assumption",
+        "theory"
+      ],
+      "ant": [],
+      "deriv": [
+        {
+          "word": "hypothesize",
+          "phonetic": "haɪˈpɑθəsaɪz",
+          "pos": "v.",
+          "meaning": "假设，假定"
+        }
+      ],
+      "phrases": [
+        {
+          "en": "test a hypothesis",
+          "zh": "检验假说"
+        }
+      ],
+      "examples": [
+        {
+          "en": "The results support the ~ that stress causes illness.",
+          "zh": "这些结果支持了压力导致疾病的假说。"
+        }
+      ],
+      "ocr_confidence": 0.9,
+      "flags": []
+    },
+    {
+      "word": "strain",
+      "phonetic": "streɪn",
+      "pos": "v./n.",
+      "section": "必考词",
+      "unit": 5,
+      "pdf_pages": [
+        20
+      ],
+      "mnemonic": "strain 原义「拉紧」→ 紧张、尽力",
+      "senses": [
+        {
+          "pos": "v.",
+          "items": [
+            "①使紧张，尽力使用：~ one's eyes 瞪大眼睛看",
+            "②拉紧，绷紧",
+            "③使损伤，使过劳"
+          ]
+        },
+        {
+          "pos": "n.",
+          "items": [
+            "拉力，张力；努力，尽力；过度紧张"
+          ]
+        }
+      ],
+      "syn": [
+        "stress",
+        "tension",
+        "exertion"
+      ],
+      "ant": [
+        {
+          "word": "relaxation",
+          "pos": "n.",
+          "meaning": "松弛，缓和"
+        }
+      ],
+      "deriv": [
+        {
+          "word": "strained",
+          "phonetic": "streɪnd",
+          "pos": "adj.",
+          "meaning": "紧张的；勉强的，不自然的"
+        }
+      ],
+      "phrases": [
+        {
+          "en": "put a strain on sth.",
+          "zh": "对……造成压力"
+        },
+        {
+          "en": "under strain",
+          "zh": "处于压力之下"
+        }
+      ],
+      "examples": [
+        {
+          "en": "The rope was strained to breaking point.",
+          "zh": "绳子被拉到了断裂的边缘。"
+        },
+        {
+          "en": "She ~ed her eyes to read the small print.",
+          "zh": "她瞪大眼睛去看那些小字。"
+        }
+      ],
+      "ocr_confidence": 0.97,
+      "flags": []
+    },
+    {
+      "word": "remote",
+      "phonetic": "rɪˈmoʊt",
+      "pos": "adj.",
+      "section": "必考词",
+      "unit": 1,
+      "pdf_pages": [
+        1
+      ],
+      "mnemonic": "re（再）+ mote（尘埃）→ 反复扫除尘埃 → 疏远的、遥远的",
+      "senses": [
+        {
+          "pos": "adj.",
+          "items": [
+            "①（时间、距离）遥远的：a ~ village 偏远的村庄",
+            "②（关系）疏远的，冷淡的",
+            "③极不相同的"
+          ]
+        }
+      ],
+      "syn": [
+        "distant",
+        "isolated"
+      ],
+      "ant": [
+        {
+          "word": "near",
+          "pos": "adj.",
+          "meaning": "近的"
+        }
+      ],
+      "deriv": [
+        {
+          "word": "remotely",
+          "phonetic": "rɪˈmoʊtli",
+          "pos": "adv.",
+          "meaning": "遥远地；丝毫"
+        }
+      ],
+      "phrases": [],
+      "examples": [
+        {
+          "en": "The farm is ~ from any major city.",
+          "zh": "这个农场远离任何大城市。"
+        }
+      ],
+      "ocr_confidence": 0.96,
+      "flags": []
+    },
+    {
+      "word": "forbid",
+      "phonetic": "fərˈbɪd",
+      "pos": "vt.",
+      "section": "基础词",
+      "unit": 26,
+      "pdf_pages": [
+        225
+      ],
+      "mnemonic": "for（禁止）+ bid（命令）→ 下令禁止",
+      "senses": [
+        {
+          "pos": "v.",
+          "items": [
+            "不许，禁止：~ sb. to do sth. 禁止某人做某事"
+          ]
+        }
+      ],
+      "syn": [
+        "prohibit",
+        "ban"
+      ],
+      "ant": [
+        {
+          "word": "permit",
+          "pos": "v.",
+          "meaning": "允许"
+        }
+      ],
+      "deriv": [
+        {
+          "word": "forbidden",
+          "phonetic": "fərˈbɪdn",
+          "pos": "adj.",
+          "meaning": "被禁止的"
+        },
+        {
+          "word": "forbidding",
+          "phonetic": "fərˈbɪdɪŋ",
+          "pos": "adj.",
+          "meaning": "令人反感的；严峻的"
+        }
+      ],
+      "phrases": [
+        {
+          "en": "forbid sb. to do sth.",
+          "zh": "禁止某人做某事"
+        }
+      ],
+      "examples": [
+        {
+          "en": "The law forbids smoking in public places.",
+          "zh": "法律禁止在公共场所吸烟。"
+        }
+      ],
+      "ocr_confidence": 0.94,
+      "flags": []
+    },
+    {
+      "word": "bad",
+      "phonetic": "bæd",
+      "pos": "adj.",
+      "section": "基础词",
+      "unit": 12,
+      "pdf_pages": [
+        160
+      ],
+      "mnemonic": null,
+      "senses": [
+        {
+          "pos": "adj.",
+          "items": [
+            "坏的，不好的；严重的；有害的"
+          ]
+        }
+      ],
+      "syn": [
+        "poor",
+        "harmful"
+      ],
+      "ant": [
+        {
+          "word": "good",
+          "pos": "adj.",
+          "meaning": "好的"
+        }
+      ],
+      "deriv": [
+        {
+          "word": "badly",
+          "phonetic": "ˈbædli",
+          "pos": "adv.",
+          "meaning": "糟糕地；非常"
+        }
+      ],
+      "phrases": [
+        {
+          "en": "go from bad to worse",
+          "zh": "每况愈下"
+        }
+      ],
+      "examples": [],
+      "ocr_confidence": 0.99,
+      "flags": [
+        "no_examples"
+      ]
+    },
+    {
+      "word": "medium",
+      "phonetic": "ˈmidiəm",
+      "pos": "n./adj.",
+      "section": "必考词",
+      "unit": 13,
+      "pdf_pages": [
+        53
+      ],
+      "mnemonic": "medi（中间）+ um → 中间物 → 媒介",
+      "senses": [
+        {
+          "pos": "n.",
+          "items": [
+            "①媒介（物），介质，媒体：mass media 大众传媒",
+            "②中间，中庸"
+          ]
+        },
+        {
+          "pos": "adj.",
+          "items": [
+            "中等的，中号的"
+          ]
+        }
+      ],
+      "syn": [
+        "means",
+        "channel"
+      ],
+      "ant": [],
+      "deriv": [
+        {
+          "word": "media",
+          "phonetic": "ˈmidiə",
+          "pos": "n.",
+          "meaning": "媒体（medium 的复数）"
+        }
+      ],
+      "phrases": [
+        {
+          "en": "a medium of communication",
+          "zh": "传播媒介"
+        }
+      ],
+      "examples": [
+        {
+          "en": "Television is a powerful ~ of communication.",
+          "zh": "电视是一种强有力的传播媒介。"
+        }
+      ],
+      "ocr_confidence": 0.92,
+      "flags": []
+    },
+    {
+      "word": "analysis",
+      "phonetic": "æˈnælɪsɪs",
+      "pos": "n.",
+      "section": "基础词",
+      "unit": 16,
+      "pdf_pages": [
+        178
+      ],
+      "mnemonic": "ana（分开）+ lysis（松解）→ 分解开来 → 分析",
+      "senses": [
+        {
+          "pos": "n.",
+          "items": [
+            "分解，分析：a careful ~ of the data 对数据的仔细分析"
+          ]
+        }
+      ],
+      "syn": [
+        "examination",
+        "study"
+      ],
+      "ant": [],
+      "deriv": [
+        {
+          "word": "analyze",
+          "phonetic": "ˈænəlaɪz",
+          "pos": "v.",
+          "meaning": "分析"
+        },
+        {
+          "word": "analyst",
+          "phonetic": "ˈænəlɪst",
+          "pos": "n.",
+          "meaning": "分析师"
+        }
+      ],
+      "phrases": [
+        {
+          "en": "in the final analysis",
+          "zh": "归根结底"
+        }
+      ],
+      "examples": [
+        {
+          "en": "A careful ~ of the data revealed the trend.",
+          "zh": "对数据的仔细分析揭示了这一趋势。"
+        }
+      ],
+      "ocr_confidence": 0.95,
+      "flags": []
+    },
+    {
+      "word": "affect",
+      "phonetic": "əˈfɛkt",
+      "pos": "v.",
+      "section": "必考词",
+      "unit": 21,
+      "pdf_pages": [
+        87
+      ],
+      "mnemonic": "af（to）+ fect（做）→ 对……做 → 影响",
+      "senses": [
+        {
+          "pos": "v.",
+          "items": [
+            "①影响：~ the outcome 影响结果",
+            "②（疾病）侵袭，感染",
+            "③（在感情上）深深打动"
+          ]
+        }
+      ],
+      "syn": [
+        "influence",
+        "impact"
+      ],
+      "ant": [],
+      "deriv": [
+        {
+          "word": "affected",
+          "phonetic": "əˈfɛktɪd",
+          "pos": "adj.",
+          "meaning": "受到影响的；做作的"
+        },
+        {
+          "word": "affection",
+          "phonetic": "əˈfɛkʃn",
+          "pos": "n.",
+          "meaning": "喜爱，钟爱"
+        }
+      ],
+      "phrases": [
+        {
+          "en": "be deeply affected by",
+          "zh": "深受……影响"
+        }
+      ],
+      "examples": [
+        {
+          "en": "Smoking can ~ your health.",
+          "zh": "吸烟会影响你的健康。"
+        }
+      ],
+      "ocr_confidence": 0.97,
+      "flags": []
+    },
+    {
+      "word": "abandon",
+      "phonetic": "əˈbændən",
+      "pos": "v.",
+      "section": "必考词",
+      "unit": 11,
+      "pdf_pages": [
+        44
+      ],
+      "mnemonic": "a + band（带子）+ on → 解开带子放走 → 抛弃",
+      "senses": [
+        {
+          "pos": "v.",
+          "items": [
+            "①抛弃，遗弃，离弃：~ a sinking ship 弃船",
+            "②放弃：~ the plan 放弃计划"
+          ]
+        }
+      ],
+      "syn": [
+        "desert",
+        "forsake",
+        "give up"
+      ],
+      "ant": [
+        {
+          "word": "retain",
+          "pos": "v.",
+          "meaning": "保留"
+        }
+      ],
+      "deriv": [
+        {
+          "word": "abandoned",
+          "phonetic": "əˈbændənd",
+          "pos": "adj.",
+          "meaning": "被遗弃的；废弃的"
+        },
+        {
+          "word": "abandonment",
+          "phonetic": "əˈbændənmənt",
+          "pos": "n.",
+          "meaning": "抛弃，放弃"
+        }
+      ],
+      "phrases": [
+        {
+          "en": "abandon oneself to",
+          "zh": "沉溺于，纵情于"
+        },
+        {
+          "en": "with abandon",
+          "zh": "放纵地，尽情地"
+        }
+      ],
+      "examples": [
+        {
+          "en": "They abandoned the plan for lack of funds.",
+          "zh": "由于缺乏资金，他们放弃了这项计划。"
+        }
+      ],
+      "ocr_confidence": 0.98,
+      "flags": []
+    },
+    {
+      "word": "rigorous",
+      "phonetic": "ˈrɪgərəs",
+      "pos": "adj.",
+      "section": "基础词",
+      "unit": 26,
+      "pdf_pages": [
+        227
+      ],
+      "mnemonic": null,
+      "senses": [
+        {
+          "pos": "adj.",
+          "items": [
+            "严格的，严厉的；严酷的，严峻的"
+          ]
+        }
+      ],
+      "syn": [],
+      "ant": [],
+      "deriv": [],
+      "phrases": [],
+      "examples": [],
+      "ocr_confidence": 0.9,
+      "flags": [
+        "bare_entry"
+      ]
+    },
+    {
+      "word": "solemn",
+      "phonetic": "ˈsɑləm",
+      "pos": null,
+      "section": "基础词",
+      "unit": 5,
+      "pdf_pages": [
+        128
+      ],
+      "mnemonic": null,
+      "senses": [],
+      "syn": [],
+      "ant": [],
+      "deriv": [],
+      "phrases": [],
+      "examples": [],
+      "ocr_confidence": null,
+      "flags": [
+        "no_senses"
+      ]
+    },
+    {
+      "word": "alleviate",
+      "phonetic": "əˈliviˌeɪt",
+      "pos": "vt.",
+      "section": "基础词",
+      "unit": 17,
+      "pdf_pages": [
+        183
+      ],
+      "mnemonic": "al（to）+ lev（轻）+ iate → 使变轻 → 减轻",
+      "senses": [
+        {
+          "pos": "v.",
+          "items": [
+            "减轻，缓和：~ the pain 减轻疼痛"
+          ]
+        }
+      ],
+      "syn": [
+        "relieve",
+        "ease"
+      ],
+      "ant": [],
+      "deriv": [
+        {
+          "word": "alleviation",
+          "phonetic": "əˌliviˈeɪʃn",
+          "pos": "n.",
+          "meaning": "减轻，缓和"
+        }
+      ],
+      "phrases": [],
+      "examples": [
+        {
+          "en": "The medicine alleviated her pain.",
+          "zh": "药物减轻了她的疼痛。"
+        }
+      ],
+      "ocr_confidence": 0.96,
+      "flags": []
+    },
+    {
+      "word": "dilemma",
+      "phonetic": "dɪˈlɛmə",
+      "pos": "n.",
+      "section": "基础词",
+      "unit": 7,
+      "pdf_pages": [
+        139
+      ],
+      "mnemonic": "di（二）+ lemma（假设）→ 两个假设之间 → 两难",
+      "senses": [
+        {
+          "pos": "n.",
+          "items": [
+            "（进退两难的）窘境，困境"
+          ]
+        }
+      ],
+      "syn": [
+        "predicament",
+        "quandary"
+      ],
+      "ant": [],
+      "deriv": [],
+      "phrases": [
+        {
+          "en": "face a dilemma",
+          "zh": "面临两难境地"
+        }
+      ],
+      "examples": [],
+      "ocr_confidence": 0.93,
+      "flags": [
+        "no_examples"
+      ]
+    },
+    {
+      "word": "naive",
+      "phonetic": "naɪiv",
+      "pos": "adj.",
+      "section": "基础词",
+      "unit": 8,
+      "pdf_pages": [
+        142
+      ],
+      "mnemonic": "naive 与 native 形近：未受外界影响的 → 天真的",
+      "senses": [
+        {
+          "pos": "adj.",
+          "items": [
+            "天真的，幼稚的；朴素的"
+          ]
+        }
+      ],
+      "syn": [
+        "innocent",
+        "childlike"
+      ],
+      "ant": [
+        {
+          "word": "sophisticated",
+          "pos": "adj.",
+          "meaning": "老练的"
+        }
+      ],
+      "deriv": [
+        {
+          "word": "naivety",
+          "phonetic": "naɪˈiːvti",
+          "pos": "n.",
+          "meaning": "天真，幼稚"
+        }
+      ],
+      "phrases": [],
+      "examples": [
+        {
+          "en": "It was ~ of him to trust a stranger.",
+          "zh": "他去信任一个陌生人，真是太天真了。"
+        }
+      ],
+      "ocr_confidence": 0.94,
+      "flags": []
+    },
+    {
+      "word": "undermine",
+      "phonetic": "ˈəndərˌmaɪn",
+      "pos": "vt.",
+      "section": "基础词",
+      "unit": 11,
+      "pdf_pages": [
+        157
+      ],
+      "mnemonic": "under（下面）+ mine（挖）→ 在下面挖 → 暗中破坏",
+      "senses": [
+        {
+          "pos": "v.",
+          "items": [
+            "①在……下挖",
+            "②暗中破坏，逐渐损害（或削弱）：~ confidence 削弱信心"
+          ]
+        }
+      ],
+      "syn": [
+        "weaken",
+        "sabotage"
+      ],
+      "ant": [
+        {
+          "word": "strengthen",
+          "pos": "v.",
+          "meaning": "加强"
+        }
+      ],
+      "deriv": [],
+      "phrases": [],
+      "examples": [
+        {
+          "en": "Constant criticism can ~ a child's confidence.",
+          "zh": "不断的批评会削弱孩子的自信心。"
+        }
+      ],
+      "ocr_confidence": 0.95,
+      "flags": []
+    },
+    {
+      "word": "offspring",
+      "phonetic": "ˈɔfˌsprɪŋ",
+      "pos": "n.",
+      "section": "必考词",
+      "unit": 14,
+      "pdf_pages": [
+        60
+      ],
+      "mnemonic": "off（离开）+ spring（生长）→ 从母体生长出去 → 后代",
+      "senses": [
+        {
+          "pos": "n.",
+          "items": [
+            "子孙，后代；结果，产物"
+          ]
+        }
+      ],
+      "syn": [
+        "descendant",
+        "progeny"
+      ],
+      "ant": [
+        {
+          "word": "ancestor",
+          "pos": "n.",
+          "meaning": "祖先"
+        }
+      ],
+      "deriv": [],
+      "phrases": [],
+      "examples": [
+        {
+          "en": "The ~ of these animals are born blind.",
+          "zh": "这些动物的后代出生时是看不见的。"
+        }
+      ],
+      "ocr_confidence": 0.97,
+      "flags": []
+    },
+    {
+      "word": "sustain",
+      "phonetic": "səˈsteɪn",
+      "pos": "vt.",
+      "section": "必考词",
+      "unit": 26,
+      "pdf_pages": [
+        109
+      ],
+      "mnemonic": "sus（下面）+ tain（握住）→ 在下面托住 → 支撑、维持",
+      "senses": [
+        {
+          "pos": "v.",
+          "items": [
+            "①维持，保持：~ economic growth 保持经济增长",
+            "②支撑，承受：~ the weight 承受重量",
+            "③遭受，蒙受：~ injuries 受伤"
+          ]
+        }
+      ],
+      "syn": [
+        "maintain",
+        "suffer"
+      ],
+      "ant": [],
+      "deriv": [
+        {
+          "word": "sustainable",
+          "phonetic": "səˈsteɪnəbl",
+          "pos": "adj.",
+          "meaning": "可持续的；可承受的"
+        },
+        {
+          "word": "sustained",
+          "phonetic": "səˈsteɪnd",
+          "pos": "adj.",
+          "meaning": "持续的；持久的"
+        }
+      ],
+      "phrases": [
+        {
+          "en": "sustain growth",
+          "zh": "维持增长"
+        }
+      ],
+      "examples": [
+        {
+          "en": "The economy cannot ~ such rapid growth.",
+          "zh": "经济无法维持如此快速的增长。"
+        }
+      ],
+      "ocr_confidence": 0.98,
+      "flags": []
+    }
+  ]
+}
