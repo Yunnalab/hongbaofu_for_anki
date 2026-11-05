@@ -184,9 +184,13 @@ def tune_speed_streak(mode: str) -> None:
     print(f"Speed Streak 已{'关闭' if mode == 'off' else '调参'}，原配置备份在 {dest}")
 
 
-def red_book_decks(cur) -> list[tuple[int, str]]:
+def red_book_decks(cur, match: str = "红宝") -> list[tuple[int, str]]:
+    """默认匹配所有红宝书牌组（一轮「红宝书考研词汇」+ 二轮「红宝书二轮」）。
+
+    `--match` 可以只挑一部分：一轮用 `--match 考研词汇`，二轮用 `--match 二轮`。
+    """
     cur.execute("SELECT id, name FROM decks")
-    return [(i, n.replace("\x1f", "::")) for i, n in cur.fetchall() if "红宝" in n]
+    return [(i, n.replace("\x1f", "::")) for i, n in cur.fetchall() if match in n]
 
 
 def ensure_preset(cur, tier: dict) -> int:
@@ -298,6 +302,12 @@ def main() -> None:
     ap.add_argument("--dry-run", action="store_true", help="在 /tmp 副本上演练，不动真实数据")
     ap.add_argument("--force", action="store_true", help="即使 Anki 正在运行也强行写入")
     ap.add_argument(
+        "--match",
+        default="红宝",
+        help="只改名字含该子串的牌组：默认「红宝」（一轮+二轮），"
+             "「考研词汇」=只要一轮，「二轮」=只要二轮",
+    )
+    ap.add_argument(
         "--speed-streak",
         choices=["tune", "off"],
         help="调 Speed Streak 插件计时（tune）或直接关掉它（off），不动牌组",
@@ -332,7 +342,7 @@ def main() -> None:
     cur = conn.cursor()
 
     preset_id = ensure_preset(cur, tier)
-    decks = red_book_decks(cur)
+    decks = red_book_decks(cur, args.match)
     changed = assign_preset(cur, [i for i, _ in decks], preset_id)
     enable_parent_limit_hardening(cur)
     cur.execute("UPDATE col SET mod=? WHERE id=1", (now_ms(),))
