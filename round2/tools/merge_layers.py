@@ -124,7 +124,7 @@ PREPS = {
     "behind", "beside", "between", "among", "after", "before", "during",
     "per", "via", "away", "back",
 }
-JOINT_OK = {"a", "i"}
+JOINT_OK = {"a", "sth", "sb", "smb"}
 SUFFIX_STOP = {"ing", "ed", "es", "er", "ers", "est", "ly", "tion", "sion",
                "s", "ion", "ition", "ation", "ive", "ous", "ness", "ment", "ful",
                "less", "able", "ible", "ance", "ence", "ency", "ancy", "ity",
@@ -298,7 +298,7 @@ def inflect_forms(word):
     return out
 
 
-def split_glued(token, vocab, max_parts=4):
+def split_glued(token, vocab, max_parts=4, clean=None):
     """把 `inviewof` 这种粘连 token 按词库切成 `in view of`。
 
     只在整 token 不在词库里时才拆，且要求：
@@ -315,9 +315,7 @@ def split_glued(token, vocab, max_parts=4):
             return False
         if w in PREPS or w in JOINT_OK:
             return True
-        if len(w) == 2:
-            return w in FUNC_WORDS
-        return w in vocab
+        return len(w) >= 3 and w in vocab
 
     def go(i):
         if i == len(token):
@@ -341,16 +339,25 @@ def split_glued(token, vocab, max_parts=4):
     parts = go(0)
     if not parts or len(parts) < 2:
         return token
+    clean = clean or vocab
+    if not any(p in PREPS for p in parts):
+        rest = [p for p in parts if p not in JOINT_OK]
+        if not rest or not all(p in clean for p in rest):
+            return token
+        if not any(p in JOINT_OK for p in parts):
+            # 既没有介词也没有 a/sth/sb 锚点：只放行「两段都 ≥5 字母且都是净词库词」
+            if len(parts) != 2 or min(len(p) for p in parts) < 5:
+                return token
     return " ".join(parts)
 
 
-def desplit_line(text, vocab, base, log=None):
+def desplit_line(text, vocab, base, log=None, clean=None):
     """行内把粘连的长 token 拆开（不碰已在词库里的真词）。"""
     def repl(m):
         w = m.group(0)
         if w.lower() in base:
             return w
-        new = split_glued(w.lower(), vocab)
+        new = split_glued(w.lower(), vocab, clean=clean)
         if new != w.lower():
             if log is not None:
                 log.append((w, new))
@@ -362,12 +369,13 @@ def desplit_line(text, vocab, base, log=None):
 
 # ------------------------------------------------------------------ 合并
 class Merger:
-    def __init__(self, whitelist, base=None, vocab=None, split_log=False):
+    def __init__(self, whitelist, base=None, vocab=None, split_log=False, clean=None):
         self.whitelist = whitelist
         self.base = base or whitelist
         self.vocab = vocab or whitelist
         self.stat = dict(latin_runs=0, exact=0, fuzzy=0, fallback=0,
                          tilde=0, punct_keep=0, lines_unmapped=0, desplit=0)
+        self.clean = clean or self.vocab
         self.split_log = [] if split_log else None
 
     # ---------------- 在英文串里定位一个 run
@@ -464,7 +472,7 @@ class Merger:
         if out and is_page_number(out):
             out = ""
         if out and self.vocab:
-            new = desplit_line(out, self.vocab, self.base, self.split_log)
+            new = desplit_line(out, self.vocab, self.base, self.split_log, self.clean)
             if new != out:
                 self.stat["desplit"] += 1
                 out = new
@@ -620,6 +628,11 @@ def main(argv=None):
     vocab = set(whitelist) | COMMON_WORDS | {"sth", "sb", "smb", "oneself", "one's"}
     for w in words:
         vocab |= inflect_forms(w)
+    # 净词库：不含「英文层分词」结果，只收词条 + 屈折 + 内置高频词。
+    # 无介词锚点的切分只允许用它，免得把英文层的垃圾 token 当词拼进去
+    clean_vocab = set(vocab)
+    for w in list(COMMON_WORDS):
+        clean_vocab |= inflect_forms(w)
 
     t0 = time.time()
     pages_out, zh_lines, en_lines = {}, [], []
@@ -629,7 +642,7 @@ def main(argv=None):
         total = len(zpdf.pages)
         targets = parse_pages(args.pages, total)
         vocab |= en_corpus_words(epdf, targets)
-        merger = Merger(whitelist, base=vocab, vocab=vocab)
+        merger = Merger(whitelist, base=vocab, vocab=vocab, clean=clean_vocab)
         print(f"  词库 {len(vocab)} 个词，开始合并", flush=True)
         for k, pno in enumerate(targets, 1):
             zchars = zpdf.pages[pno - 1].chars
