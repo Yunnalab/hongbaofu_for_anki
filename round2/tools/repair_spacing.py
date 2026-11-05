@@ -27,6 +27,8 @@ import inflect  # noqa: E402
 R1 = os.path.join(ROOT, "all_entries_v2.json")
 EN_PDF = ("/home/cloudygirl/Study/考研/英语/英语红宝书26/"
           "[OCR]_00-红宝书_无文本层_20261104_1728.layered.pdf")
+ZH_PDF = ("/home/cloudygirl/Study/考研/英语/英语红宝书26/"
+          "[OCR]ch_00-红宝书_无文本层_20261104_2211.layered.pdf")
 
 FUNCTION = set("""
 a an the of to in on at for with from by as and or but if it is are was were be been being
@@ -38,6 +40,7 @@ first last own same only just also even still yet well back down away through be
 along across behind beyond toward towards under above below near beside besides except including
 despite regarding according whereas while because though although unless until since whether either
 neither per via upon during without within sth sb etc vs ie eg mr mrs dr st re
+adj adv vt vi prep conj pron n v
 """.split())
 
 
@@ -63,14 +66,29 @@ def load_lexicon() -> set[str]:
                 for piece in inflect.split_forms(value):
                     if len(piece) >= 2:
                         lex.add(piece.lower())
+    # 中文层里也有不少拼对的英文词（`eagle` 这种不进 4292 词表），按高频收进来
+    if os.path.exists(ZH_PDF):
+        ztxt = subprocess.run(["pdftotext", "-layout", ZH_PDF, "-"],
+                              capture_output=True, text=True).stdout.lower()
+        zcnt = Counter(t for t in re.findall(r"[a-z][a-z'\-]{2,}", ztxt))
+        BASE_LEX.update(lex)
+        for word, n in zcnt.items():
+            if n < 3 or len(word) > 13 or word in lex or word in KNOWN:
+                continue
+            if split_token(word, BASE_LEX):
+                continue
+            lex.add(word)
+
     if os.path.exists(EN_PDF):
         txt = subprocess.run(["pdftotext", "-layout", EN_PDF, "-"],
                              capture_output=True, text=True).stdout.lower()
         cnt = Counter(t for t in re.findall(r"[a-z][a-z'\-]{2,}", txt))
-        KNOWN.update(cnt.keys())            # 英文层出现过的任何 token：绝不拿来拆
+        # 英文层高频 token 才当「真词」保护（`weather`/`excellent` 出现几十次）；
+        # 低频 token 多半是粘连垃圾（`preytosth`），不能拿它挡住切分
+        KNOWN.update(t for t, n in cnt.items() if n >= 8)
         BASE_LEX.update(lex)
         for word, n in cnt.items():
-            if n < 10 or len(word) > 12:
+            if n < 3 or len(word) > 13:
                 continue
             if word in lex:
                 continue
@@ -81,7 +99,7 @@ def load_lexicon() -> set[str]:
 
 
 TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z'\-]*")
-MIN_GLUE = 7          # 短于这个长度一律不拆（避免 a/the 之类误拆）
+MIN_GLUE = 6          # 短于这个长度一律不拆（避免 a/the 之类误拆）
 MAX_PARTS = 4
 
 
@@ -109,8 +127,8 @@ def split_token(token: str, lex: set[str]) -> list[str] | None:
             piece = low[pos:end]
             if len(piece) < 2 or piece not in lex:
                 continue
-            if len(piece) < 4 and piece not in FUNCTION and piece not in HEADWORDS:
-                continue        # 2–3 字母碎片只允许功能词或书上词条（old/new/day…）
+            if len(piece) < 3 and piece not in FUNCTION:
+                continue        # 2 字母碎片只放行功能词（to/of/is…）
             acc.append(piece)
             walk(end, acc)
             acc.pop()
@@ -119,16 +137,21 @@ def split_token(token: str, lex: set[str]) -> list[str] | None:
     if not best:
         return None
     # 至少一个功能词，或全部片段 ≥3 字母，才认为拆得靠谱
-    # 高精度优先：必须含一个功能词，否则多半是把真词（fireflies）硬切
-    if not any(p in FUNCTION for p in best):
-        return None
-    return list(best)
+    # 高精度闸门：含功能词最稳；退一步只允许「3 段以上、每段都是实词」
+    # （`oldkindrope` → old kind rope）；两段实词的切法风险太高（fireflies → Fire flies）。
+    if any(p in FUNCTION for p in best) or len(best) >= 3:
+        return list(best)
+    return None
 
 
 def repair_text(text: str, lex: set[str], stats: Counter) -> str:
     if not text:
         return text
     text = TILDE_SUFFIX.sub("~", text)                       # `~ ed` → `~ed`，`~ of` 不动
+    # `~one's eyes` 这种「占位符直接贴英文」补一个空格；`~ed`/`~s`/`~ing` 保持贴着
+    text = re.sub(
+        r"[~～](?!s\b|es\b|ed\b|d\b|ing\b|er\b|est\b|ly\b|al\b|ion\b|ness\b|ment\b)(?=[A-Za-z])",
+        "~ ", text)
     text = re.sub(r"\b(sh|sth|sb)\s*\.", r"\1.", text)
 
     def repl(m: re.Match) -> str:
