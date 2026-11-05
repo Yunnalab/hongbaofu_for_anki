@@ -2,24 +2,28 @@
 # -*- coding: utf-8 -*-
 """二轮词条解析器：round2/ocr/page_*.txt → round2/data/entries_r2.json。
 
-设计要点（对应 round2/SCHEMA.md）：
+契约见 round2/SCHEMA.md。对着合并版 OCR（中文层汉字 + 英文层分词）实测写成，
+不假设行内排版规范。
 
-1. **切词靠「一轮词表锚点」**。一单元预期词序列 vs OCR 里长得像 headword 的行做
-   顺序对齐，而不是靠排版猜。OCR 把 strain 认成 strairn、把 divert 认成
-   diveré 时仍能恢复；条目 `word` 直接取一轮词表里的原形，保证能 join 回一轮数据。
-2. **标记解析容忍 OCR 退化**。`【】` 常被认成 `[]()`，标记名常被认残
-   （助记→Hid、同义→司义、派生→JRE）；先做名字模糊匹配，名字彻底丢了就用
-   后面内容的形状（圈码+中文 / 只剩词性缩写 / 纯英文词）猜槽位，猜过的打
-   `marker_name_garbled`。
-3. **不编造中文释义**。解析不到就留空；派生/同义/反义的英文词必须能在该词条
-   OCR 原文里回溯到，否则打 `hallucinated_*`。
-4. **置信度是扣分制**（见 score_confidence），只有「词形精确 + 有音标 + 至少一条
-   含中文的释义 + 无 flag」才给 1.0。
+设计要点：
+
+1. **切词靠「单元词表 + 书上顺序」**。每单元从 units.json 拿到页码范围，正文里
+   「行首是拉丁词、整行无汉字」的行才可能是 headword，且必须在该单元尚未出现的
+   词里按顺序命中（先精确前缀，再编辑距离 ≤2 的模糊匹配）。于是
+   `reliable[rr'laiobl] adj.` / `unreliableadj` / `removeEn'muviu` 都能切对，
+   而 `【词义】` 之类的中文行不会被误判成词头。
+2. **标记解析容忍 OCR 退化**。`【】` 常被认成 `[]()`、`【词义]`、`【词义]】`、
+   `[词义`；名字丢了就靠标记名本身，名字前有 1–2 个粘连字母（`【s词义】`）也要认。
+   标记后紧跟 `】]）`、圈码或行尾才算标记，避免把「本题是词义辨析题」当成标记。
+3. **不编造中文释义**。解析不到就留空；deriv/syn/ant 的英文词必须在该词条 OCR
+   原文里能回溯（大小写不敏感），否则打 `hallucinated_*`。
+4. **置信度是扣分制**（见 score_confidence），没有 1.0——OCR 本身就不完美。
 
 用法：
-    python3 round2/tools/parse_entries.py                  # 全量跑
-    python3 round2/tools/parse_entries.py --limit-pages 30 # 只解析页码 ≤30 的页（调试）
-    python3 round2/tools/parse_entries.py --self-test      # 内置样本文本单测
+    python3 round2/tools/parse_entries.py                # 解析全量
+    python3 round2/tools/parse_entries.py --units         # 只重建 units.json
+    python3 round2/tools/parse_entries.py --limit-pages 30  # 只解析前 30 页（调试）
+    python3 round2/tools/parse_entries.py --self-test     # 内置样本单测
 """
 
 from __future__ import annotations
@@ -28,66 +32,64 @@ import argparse
 import datetime as _dt
 import json
 import re
+import statistics
 import sys
 from pathlib import Path
 
-# ---------------------------------------------------------------- 常量与正则
+ROOT = Path(__file__).resolve().parents[2]
+OCR_DIR = ROOT / "round2" / "ocr"
+DATA_DIR = ROOT / "round2" / "data"
+UNITS_JSON = OCR_DIR / "units.json"
+ROUND1_JSON = ROOT / "all_entries_v2.json"
 
-CJK = r"\u4e00-\u9fff"
-CJK_RE = re.compile(f"[{CJK}]")
+CJK_CLS = "\u4e00-\u9fff"
+CJK_RE = re.compile(f"[{CJK_CLS}]")
+CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿➀➁➂➃➄➅➆➇➈➉"
+CIRCLED_RE = re.compile(f"[{CIRCLED}]")
+# 页眉页脚/装饰行
+NOISE_RE = re.compile(r"^\s*(?:[·•.…\-—_=~*\s]*\d{1,4}[·•.…\-—_=~*\s]*|红宝书?)\s*$")
 
-# 词性缩写白名单（含 OCR 常见误认：adj.→ag./a., n.→m., v.→w.）
 POS_ALIAS = {
-    "a": "adj.", "ad": "adv.", "ag": "adj.", "adj": "adj.", "adv": "adv.",
-    "n": "n.", "m": "n.", "v": "v.", "w": "v.", "vt": "vt.", "vi": "vi.",
-    "aux": "aux.", "prep": "prep.", "conj": "conj.", "pron": "pron.",
-    "num": "num.", "art": "art.", "int": "int.", "abbr": "abbr.", "pl": "pl.",
+    "adj": "adj.", "ag": "adj.", "adi": "adj.", "ad": "adj.", "a": "adj.",
+    "adv": "adv.", "adu": "adv.", "ad": "adv.",
+    "n": "n.", "m": "n.",
+    "v": "v.", "w": "v.", "u": "v.", "ut": "vt.", "ot": "vt.",
+    "vt": "vt.", "vi": "vi.", "prep": "prep.", "conj": "conj.",
+    "pron": "pron.", "num": "num.", "art": "art.", "int": "int.",
+    "aux": "aux.", "pl": "pl.",
 }
-POS_TOKEN_RE = re.compile(
-    r"\b(" + "|".join(sorted(POS_ALIAS, key=len, reverse=True)) + r")\.",
-    re.IGNORECASE,
-)
+POS_KEYS = sorted(POS_ALIAS, key=len, reverse=True)
+POS_TOKEN_RE = re.compile(r"(?<![A-Za-z])(" + "|".join(POS_KEYS) + r")(?![A-Za-z])\.?", re.I)
+# 严格词性：要求带点号（预览行里末尾的 `u` 复选框/列标记会被宽松版误判成 v.）
+POS_STRICT_RE = re.compile(
+    r"(?<![A-Za-z])(adj|adv|vi|vt|prep|conj|pron|num|art|n|v)\.", re.I)
+# 单词后紧跟词性、没有点号的情形（`unreliableadj`）
+POS_GLUED_RE = re.compile(r"(" + "|".join(POS_KEYS) + r")\.?$", re.I)
 
+# 标记名（长的先匹配），名字→槽位
 MARKER_NAMES = [
-    "真题例句", "同义词", "反义词", "派生词", "词汇辨析", "习惯用语", "典型考题",
-    "试题分析", "助记", "词性", "词义", "同义", "反义", "派生", "词组", "搭配",
-    "辨析", "用法", "联想", "记忆", "扩展", "例句", "短语", "考点",
+    "真题例句", "典型考题", "典型真题", "试题分析", "词汇辨析", "习惯用语",
+    "助记", "词性", "词义", "同义", "反义", "派生", "词组", "搭配",
+    "辨析", "例句", "扩展", "谚语", "句意", "解析", "考点",
 ]
-MARKER_ALT = "|".join(MARKER_NAMES)
-# 行首裸标记（丢了括号的情形）
-MARKER_BARE_RE = re.compile(rf"(?m)^\s*(【|\[)?\s*({MARKER_ALT})\s*[】\]］:：]")
-
-# 标记名 → 槽位
 MARKER_SLOT = {
-    "助记": "mnemonic", "记忆": "mnemonic", "联想": "mnemonic",
-    "词性": "pos", "词义": "def", "例句": "examples", "真题例句": "examples",
-    "同义": "syn", "同义词": "syn", "反义": "ant", "反义词": "ant",
-    "派生": "deriv", "派生词": "deriv",
-    "词组": "phrase", "搭配": "phrase", "短语": "phrase", "习惯用语": "phrase",
-    "辨析": "notes", "词汇辨析": "notes", "用法": "notes", "扩展": "notes",
-    "考点": "notes", "典型考题": "notes", "试题分析": "notes",
+    "助记": "mnemonic",
+    "词性": "pos", "词义": "def",
+    "同义": "syn", "反义": "ant", "派生": "deriv",
+    "词组": "phrase", "搭配": "phrase", "习惯用语": "phrase",
+    "例句": "examples", "真题例句": "examples",
+    "辨析": "notes", "词汇辨析": "notes", "扩展": "notes", "解析": "notes",
+    "谚语": "notes", "句意": "notes", "考点": "notes",
+    "典型考题": "exam", "典型真题": "exam", "试题分析": "exam",
 }
-UNMODELED = ("notes",)
-
-CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿➀➁➂➃➄"
-SENT = "\x00"
-
-# 音标：书上是 [ ... ]，OCR 常把 ] 认成 ) 或干脆丢掉
-PHON_RE = re.compile(r"[\[［]\s*([^\]］\n]{1,45}?)\s*[\]］]")
-PHON_OPEN_RE = re.compile(r"[\[［]\s*([^\]］\n]{1,45})")
-PHON_BAD_CHARS = re.compile(r"[=\[\]{}<>]")
-IPA_CHARS = set("abcdefghijklmnopqrstuvwxyzæɑɒɔəɜɪʊʌʃʒθðŋˈˌː'’()-,;:. ")
-
-# 页眉/页脚/装饰行
-NOISE_RE = re.compile(r"^\s*(?:[·•.…\-—_=~*\s]*\d{1,4}[·•.…\-—_=~*\s]*|红宝书?|红宝•?\s*书)\s*$")
-
-HEADWORD_MAX_LEN = 60
-ALIGN_WINDOW = 45
+CLOSERS = "】]］〕)）:："
+SUFFIXES = ("ed", "d", "s", "ing", "er", "est", "ly", "al", "y", "ies",
+            "able", "ness", "ment", "ion", "tion", "es")
 
 
-# ---------------------------------------------------------------- 文本工具
+# ------------------------------------------------------------------ 基础工具
 
-def norm_spaces(s: str) -> str:
+def clean_spaces(s: str) -> str:
     return re.sub(r"[ \t\u00a0\u3000]+", " ", s).strip()
 
 
@@ -95,95 +97,56 @@ def letters_only(s: str) -> str:
     return re.sub(r"[^a-z]", "", s.lower())
 
 
-def edit_distance_le1(a: str, b: str) -> bool:
-    if a == b:
-        return True
-    la, lb = len(a), len(b)
-    if abs(la - lb) > 1:
-        return False
-    if la == lb:
-        return sum(1 for x, y in zip(a, b) if x != y) <= 1
-    if la > lb:
-        a, b, la, lb = b, a, lb, la
+def join_lines(lines: list[str]) -> str:
+    """中文行折行不加空格，拉丁两侧加空格。"""
+    out = ""
+    for ln in lines:
+        ln = ln.strip()
+        if not ln:
+            continue
+        if not out:
+            out = ln
+        elif CJK_RE.search(out[-1]) and CJK_RE.search(ln[0]):
+            out += ln
+        else:
+            out += " " + ln
+    return out
+
+
+def glue_word_spaces(s: str) -> str:
+    """`t ra nsoferabrle` → `transoferabrle`：拉丁字母之间的空格是 OCR 拆字。
+
+    但 `relaxation n。松驰` 里的 `n` 是词性缩写，粘上去就毁了，所以右侧若是
+    词性别名就不粘。
+    """
+    out = []
     i = 0
-    while i < la and a[i] == b[i]:
-        i += 1
-    return a[i:] == b[i + 1:]
+    for m in re.finditer(r"(?<=[A-Za-z])(\s+)(?=[a-z])", s):
+        if m.start() < i:
+            continue
+        right = s[m.end():]
+        tok = re.match(r"[a-z]+", right).group(0) if re.match(r"[a-z]+", right) else ""
+        if tok.lower() in POS_ALIAS:
+            continue
+        out.append(s[i:m.start()])
+        i = m.end()
+    out.append(s[i:])
+    return "".join(out)
 
 
-def similar(a: str, b: str) -> int:
-    """0=不像 1=模糊像 2=完全相同（比较前归一成纯字母小写）。"""
-    na, nb = letters_only(a), letters_only(b)
-    if not na or not nb:
-        return 0
-    if na == nb:
-        return 2
-    if len(na) >= 4 and len(nb) >= 4 and edit_distance_le1(na, nb):
-        return 1
-    if len(na) >= 5 and len(nb) >= 5 and na[0] == nb[0] and na[-1] == nb[-1] \
-            and abs(len(na) - len(nb)) <= 2:
-        return 1
-    return 0
+def glue_tilde(s: str) -> str:
+    """`~ ed` → `~ed`（只粘后缀，`~ one's eyes` 不动）。"""
+    def rep(m):
+        return "~" + m.group(1)
+    pat = r"~[ \t]+(" + "|".join(SUFFIXES) + r")\b"
+    return re.sub(pat, rep, s)
 
 
-def is_noise(line: str) -> bool:
-    s = line.strip()
-    if not s:
-        return True
-    if NOISE_RE.match(s):
-        return True
-    if re.fullmatch(r"[|\-—_=·.。,，、;；:：'\"“”‘’()（）\[\]【】]+", s):
-        return True
-    return False
-
-
-def looks_ipa(s: str) -> bool:
-    s = s.strip().strip("|").strip()
-    if not (1 <= len(s) <= 45):
-        return False
-    if CJK_RE.search(s) or re.search(r"\d", s):
-        return False
-    if PHON_BAD_CHARS.search(s):
-        return False
-    if not re.search(r"[a-zA-Zæɑɒɔəɜɪʊʌʃʒθðŋ]", s):
-        return False
-    if len(re.findall(r"[A-Za-z]+", s)) > 3:   # 一句英文而不是音标
-        return False
-    good = sum(1 for ch in s.lower() if ch in IPA_CHARS)
-    return good / len(s) >= 0.75
-
-
-def extract_phonetic(line: str):
-    m = PHON_RE.search(line)
-    cand = m.group(1) if m else None
-    if cand is None:
-        m2 = PHON_OPEN_RE.search(line)
-        if m2:
-            cand = m2.group(1)
-    if cand is None:
-        return None
-    cand = cand.strip().strip("|").strip()
-    return cand if looks_ipa(cand) else None
-
-
-# ---------------------------------------------------------------- 标记识别
-
-CONFUSE = str.maketrans({"司": "同", "伺": "同", "饲": "同", "叉": "义", "艾": "义"})
-BRACKET_RE = re.compile(r"[【\[［(（]\s*([^\]】）)］\n]{1,12}?)\s*[】\]］)）]")
-
-# 行首 OCR 认残的圈码（①→@/O/0/Q/G/CD/GD/iO…），后面必须紧跟中文才算 item 开头
-ITEM_LEAD_RE = re.compile(
-    rf"^\s*[0-9@OoQqGgCcDdJjLl]{{1,2}}\s*[).\]】:：]?\s*(?=[{CJK}])"
-)
-
-
-def cjk_core(s: str) -> str:
-    return "".join(ch for ch in s.translate(CONFUSE) if re.match(f"[{CJK}]", ch))
-
-
-def lev(a: str, b: str) -> int:
+def edist(a: str, b: str) -> int:
     if a == b:
         return 0
+    if abs(len(a) - len(b)) > 3:
+        return 9
     prev = list(range(len(b) + 1))
     for i, ca in enumerate(a, 1):
         cur = [i]
@@ -193,449 +156,716 @@ def lev(a: str, b: str) -> int:
     return prev[-1]
 
 
-def match_marker_name(content: str):
-    """括号里那串字符是不是某个标记名（容忍 OCR 认残）。"""
-    core = cjk_core(content)
-    if not core:
-        return None
-    lead = re.match(rf"[{CJK}]+", content.translate(CONFUSE))
-    if lead and len(lead.group(0)) <= 4:
-        core = lead.group(0)
-    best, best_d = None, 99
-    for name in MARKER_NAMES:
-        ncore = cjk_core(name)
-        if not ncore:
-            continue
-        if ncore == core:
-            return name
-        if len(core) >= 2 and ncore.endswith(core):
-            return name
-        if len(core) >= 2 and core.endswith(ncore):
-            return name
-        d = lev(ncore, core)
-        if d <= 1 and d < best_d:
-            best, best_d = name, d
-    return best
+# ------------------------------------------------------------------ 标记
 
-
-def _at_line_start(text: str, i: int) -> bool:
-    j = i - 1
-    while j >= 0 and text[j] in " \t":
-        j -= 1
-    return j < 0 or text[j] == "\n"
-
-
-def looks_pos_only(s: str) -> bool:
-    """整段是否只剩词性缩写（容忍「❶ v.」/「@ [kon'test] v.」）。"""
-    t = s
-    for ch in CIRCLED:
-        t = t.replace(ch, " ")
-    t = PHON_RE.sub(" ", t)
-    t = re.sub(r"[\[\]【】()（）.,;:/、]", " ", t)
-    toks = [x for x in t.split() if x]
-    if not toks or len(toks) > 4:
-        return False
-    return all(re.fullmatch(r"(?:[a-z]{1,4}\.?)+", x) for x in toks)
-
-
-def guess_slot(rest: str):
-    """标记名彻底认不出来时，靠后面内容的形状猜槽位。"""
-    r = rest.lstrip()
-    if not r:
-        return None
-    line0 = r.split("\n")[0]
-    if looks_pos_only(line0):
-        return "pos"
-    if re.match(rf"^\s*[\[［]\s*[^\]］]*[\]］]\s*(?:[a-z]{{1,5}}\.)", line0):
-        return "pos"
-    if re.match(rf"^\s*[0-9@OoQqGgCcDdJjLl]{{1,2}}\s*[).\]】:：]?\s*[{CJK}]", line0):
-        return "def"
-    if CJK_RE.match(line0.strip()[:1] or "x"):
-        return "def"
-    if re.fullmatch(r"[A-Za-z][A-Za-z ,.;:/\-']{2,80}", line0.strip()) and not CJK_RE.search(line0):
-        return "syn"
-    # 英文词 + 音标 + 词性 + 中文 → 派生（【派生】/【反义】长的都这样）
-    if re.match(rf"^[A-Za-z][A-Za-z'’\-]*\s*[\[［][^\]］]*[\]］]\s*(?:[a-z]{{1,5}}\.)", line0):
-        return "deriv"
-    if CJK_RE.search(line0) and re.match(r"^[A-Za-z~\-]", line0.strip()):
-        return "phrase"
-    return None
-
-
-def scan_markers(text: str):
-    """返回 [(start, end, slot, name_or_None, guessed), ...]，按出现顺序。"""
-    hits = []
-    for m in BRACKET_RE.finditer(text):
-        content = m.group(1)
-        core = cjk_core(content)
-        name = match_marker_name(content)
-        if name is not None:
-            hits.append((m.start(), m.end(), MARKER_SLOT.get(name, "notes"), name, False))
-            continue
-        latin = content.strip()
-        # 标记名整个被认成拉丁乱码（JRE/ME/WK/JO），只能看全大写 + 行首
-        if not core:
-            if not (_at_line_start(text, m.start()) and 1 <= len(latin) <= 4
-                    and latin.isupper()):
+def marker_of(line: str):
+    """行首是不是标记；返回 (名字, 去掉标记后的剩余串) 或 (None, line)。"""
+    s = line.lstrip()
+    # 去掉行首 0–3 个标点/括号（！【[（ 等）
+    i = 0
+    while i < len(s) and i < 4 and not (s[i].isalnum() or CJK_RE.match(s[i])):
+        i += 1
+    s = s[i:]
+    cands = [s]
+    # 标记名前粘连 1–2 个洋文垃圾：`s词义`、`o助记`
+    for k in (1, 2):
+        if len(s) > k and s[:k].isascii() and s[:k].isalpha():
+            cands.append(s[k:])
+    for cand in cands:
+        for name in MARKER_NAMES:
+            if not cand.startswith(name):
                 continue
-        elif not (_at_line_start(text, m.start()) and 1 <= len(core) <= 3):
-            continue
-        slot = guess_slot(text[m.end(): m.end() + 60])
-        if slot is None:
-            continue
-        hits.append((m.start(), m.end(), slot, None, True))
-    for m in MARKER_BARE_RE.finditer(text):
-        if any(h[0] <= m.start() < h[1] for h in hits):
-            continue
-        name = m.group(2)
-        hits.append((m.start(), m.end(), MARKER_SLOT.get(name, "notes"), name, False))
-    hits.sort(key=lambda h: h[0])
-    out = []
-    for h in hits:
-        if out and h[0] < out[-1][1]:
-            continue
-        out.append(h)
-    return out
+            rest = cand[len(name):].lstrip()
+            if not rest or rest[0] in CLOSERS or rest[0] in CIRCLED:
+                # 允许 `】】`、`]】` 之类重复括号
+                while rest and rest[0] in CLOSERS:
+                    rest = rest[1:].lstrip()
+                return name, rest
+    return None, line
 
 
-def split_marker_blocks(text: str):
-    """切块 → [(slot, block_text, name, guessed), ...]。"""
-    hits = scan_markers(text)
-    if not hits:
-        return [(None, text, None, False)]
+def split_blocks(lines: list[str]):
+    """切 (marker_slot, name, lines[])；首个块 slot 为 None（词头行）。"""
     blocks = []
-    head = text[: hits[0][0]]
-    if head.strip():
-        blocks.append((None, head, None, False))
-    for k, (start, end, slot, name, guessed) in enumerate(hits):
-        stop = hits[k + 1][0] if k + 1 < len(hits) else len(text)
-        blocks.append((slot, text[end:stop], name, guessed))
+    cur_name, cur_lines = None, []
+    for ln in lines:
+        name, rest = marker_of(ln)
+        if name:
+            blocks.append((cur_name, cur_lines))
+            cur_name, cur_lines = name, ([rest] if rest else [])
+        else:
+            cur_lines.append(ln)
+    blocks.append((cur_name, cur_lines))
     return blocks
 
 
-# ---------------------------------------------------------------- 各标记内容解析
+# ------------------------------------------------------------------ 音标/词性
 
-def parse_pos_list(s: str) -> list:
+PHON_BRACKETS = [("[", "]"), ("［", "］"), ("【", "】"), ("「", "】"), ("{", "}")]
+IPA_OK = set("abcdefghijklmnopqrstuvwxyzæɑɒɔəɜɪʊʌʃʒθðŋˈˌː'’()-,;:.������ɡ")
+
+
+def parse_head_phon_pos(line: str, word: str):
+    """从词头行抠音标与词性。"""
+    rest = line.strip()
+    # 去掉词头（容 OCR 把词形认长一点，取最长公共前缀长度）
+    low, wl = rest.lower(), word.lower()
+    k = 0
+    while k < len(wl) and k < len(low) and low[k] == wl[k]:
+        k += 1
+    body = rest[k:] if k >= len(wl) - 1 else rest
+    phon = None
+    m = re.search(r"[\[［【「]\s*([^\]］】」\n]{1,45}?)\s*[\]］】」]", body)
+    if m:
+        raw = m.group(1).strip()
+        if raw and all((c in IPA_OK) or c.isalpha() for c in raw):
+            phon = clean_spaces(raw)
+    pos = None
+    body_nophon = re.sub(r"[\[［【「][^\]］】」]*[\]］】」]?", " ", body)
+    m2 = POS_TOKEN_RE.search(body_nophon)
+    if m2:
+        pos = POS_ALIAS.get(m2.group(1).lower())
+    return phon, pos
+
+
+def parse_pos_block(lines: list[str]):
+    """【词性】块 → 词性串（可能为空）。"""
+    t = glue_word_spaces(join_lines(lines))
+    for m in POS_TOKEN_RE.finditer(t):
+        return POS_ALIAS.get(m.group(1).lower())
+    m = POS_GLUED_RE.search(t.strip())
+    if m:
+        return POS_ALIAS.get(m.group(1).lower())
+    return None
+
+
+# ------------------------------------------------------------------ 各字段解析
+
+def parse_senses(def_blocks):
+    """[(pos, lines)] → senses；一个 def 块内部按圈码切 items。"""
+    senses = []
+    for pos, lines in def_blocks:
+        text = glue_tilde(join_lines([re.sub(r"の", "②", ln) for ln in lines]))
+        text = clean_spaces(text)
+        if not text:
+            continue
+        parts = []
+        cur = ""
+        for ch_i, ch in enumerate(text):
+            if ch in CIRCLED:
+                if cur.strip():
+                    parts.append(cur.strip())
+                cur = ch
+            else:
+                cur += ch
+        if cur.strip():
+            parts.append(cur.strip())
+        if not parts:
+            continue
+        items = [clean_spaces(p) for p in parts if clean_spaces(p)]
+        target = None
+        for s in senses:
+            if s["pos"] == pos:
+                target = s
+                break
+        if target is None:
+            target = {"pos": pos, "items": []}
+            senses.append(target)
+        target["items"].extend(items)
+    return senses
+
+
+EN_STARTERS = set("""the a an it we they he she i you in on to for if when
+do does did not this that these those there what how why while although
+because but and or as at by from of with without after before during one
+two all some many most more no can could will would should may might must
+have has had be is are was were being her his their our my your its us them
+me him who whom which whose so such then than too very just only even both
+each every either neither another other same own few little much several""".split())
+EN_RUN_RE = re.compile(r"[A-Za-z0-9'’\"~\-.,;:!?()/\[\]？。 ]{12,}")
+ZH_RUN_RE = re.compile(f"[{CJK_CLS}，。；：、（）“”‘’！？…—·]{{4,}}")
+
+
+def split_example(item: str):
+    """从一条「释义：英文例句 中文翻译」里尽力抠出 (en, zh)。"""
+    best = None
+    for m in EN_RUN_RE.finditer(item):
+        seg = m.group(0).strip(" ,;:/")
+        if len(seg) < 12 or len(seg.split()) < 3:
+            continue
+        if not re.search(r"[.?!？。…\"”]$", seg):
+            continue  # 折行被截断的碎片，别当例句
+        first = re.match(r"[A-Za-z]+", seg)
+        if not seg[0].isupper() and (first is None or first.group(0).lower() not in EN_STARTERS):
+            continue  # 以小写碎片开头（`ed by the show…`）说明前半句被吃了
+        if not re.search(r"[A-Za-z]{3}", seg):
+            continue
+        if not re.search(r"[a-z]{3}", seg):
+            continue  # 全大写/全噪声
+        if best is None or len(seg) > len(best[1]):
+            best = (m.start(), seg, m.end())
+    if not best:
+        return None
+    start, en, end = best
+    rest = item[end:]
+    zh = ""
+    m = ZH_RUN_RE.search(rest)
+    if m:
+        zh = m.group(0).strip()
+    if not zh:
+        # 英文前后可能夹着中文释义，退一步找英文段后面的中文
+        m = ZH_RUN_RE.search(item[start + len(en):])
+        if m:
+            zh = m.group(0).strip()
+    if not zh or len(zh) < 4:
+        return None
+    return en, zh
+
+
+def parse_def_examples(senses):
     out = []
-    for m in POS_TOKEN_RE.finditer(s):
-        tok = m.group(1).lower()
-        part = POS_ALIAS.get(tok)
-        if part and part not in out:
-            out.append(part)
+    for s in senses:
+        for it in s["items"]:
+            r = split_example(it)
+            if r:
+                out.append({"en": r[0], "zh": r[1]})
     return out
 
 
-def split_items(text: str) -> list:
-    """【词义】块 → item 列表（保留书上「中文释义：英文用法/例句 中文翻译」写法）。"""
-    t = text
-    for ch in CIRCLED:
-        t = t.replace(ch, SENT)
-    items, buf = [], ""
-    for raw in t.splitlines():
-        if SENT in raw:
-            parts = raw.split(SENT)
-            head = parts[0].strip()
-            if head:
-                buf = f"{buf} {head}".strip() if buf else head
-            if buf:
-                items.append(buf)
-            items.extend(p.strip() for p in parts[1:-1] if p.strip())
-            buf = parts[-1].strip()
-            continue
-        ln = raw.strip()
-        if not ln:
-            continue
-        if ITEM_LEAD_RE.match(ln):
-            if buf:
-                items.append(buf)
-            buf = ITEM_LEAD_RE.sub("", ln, count=1)
-            continue
-        if buf and re.search(r"[。！？!?…]\s*$", buf) and CJK_RE.match(ln):
-            items.append(buf)
-            buf = ln
-            continue
-        buf = f"{buf} {ln}".strip() if buf else ln
-    if buf:
-        items.append(buf)
-    return [norm_spaces(x) for x in items if x.strip()]
+def parse_example_block(lines):
+    """【真题例句】/【例句】块：英文 + 中文（+【2024年考研阅读】）。"""
+    text = clean_spaces(join_lines(lines))
+    if not text:
+        return []
+    text = re.sub(r"【[^】]*年考研[^】]*】", "", text).strip()
+    m = re.search(f"[{CJK_CLS}]", text)
+    if not m:
+        return [{"en": text, "zh": None}] if len(text) > 10 else []
+    i = m.start()
+    en, zh = text[:i].strip(" ,.;:"), text[i:].strip()
+    if len(en) < 8:
+        return []
+    return [{"en": glue_tilde(en), "zh": clean_spaces(zh)}]
 
 
-def split_phrase_chunks(text: str) -> list:
-    t = text
-    for ch in CIRCLED:
-        t = t.replace(ch, SENT)
-    chunks = []
-    for raw in t.split(SENT):
-        for ln in raw.splitlines():
-            ln = ITEM_LEAD_RE.sub("", norm_spaces(ln), count=1)
-            if ln:
-                chunks.append(ln)
-    return chunks
+SYN_STOP = set(POS_KEYS) | {"and", "or", "the", "of", "to", "in", "on", "with",
+                            "sth", "sb", "pl", "esp"}
 
 
-def first_cjk_outside_parens(s: str):
+def parse_syn(lines):
+    t = clean_spaces(glue_word_spaces(join_lines(lines)))
+    words = []
+    for m in re.finditer(r"[A-Za-z][A-Za-z'\-]*", t):
+        w = m.group(0)
+        lw = w.lower()
+        if len(letters_only(w)) < 3:
+            continue
+        if lw in SYN_STOP:
+            continue
+        words.append(w)
+    # 折行把词拆成两段（`adva`+`ntage` = advantage）：拼起来是词表里的词就合并
+    merged = []
+    for w in words:
+        if merged and words is not None:
+            joined = merged[-1] + w
+            if (letters_only(merged[-1]) not in KNOWN_WORDS
+                    and letters_only(w) not in KNOWN_WORDS
+                    and letters_only(joined) in KNOWN_WORDS):
+                merged[-1] = joined
+                continue
+        merged.append(w)
+    out = []
+    for w in merged:
+        if w not in out:
+            out.append(w)
+    return out
+
+
+KNOWN_WORDS: set[str] = set()
+
+
+def _split_word_pos_meaning(tok: str):
+    """`unreliableadj` → ('unreliable', 'adj.')。
+
+    只在前缀确实是一轮词表里的词时才切——否则 `roundabout` 会被切成
+    `roundabo`+`ut.(vt.)`，`shut`/`about` 同理。
+    """
+    lw = tok.lower()
+    if lw in KNOWN_WORDS:
+        return tok, None
+    for alias in POS_KEYS:
+        if len(alias) < 2 or not lw.endswith(alias):
+            continue
+        head = tok[: -len(alias)]
+        if len(head) >= 3 and head.lower() in KNOWN_WORDS:
+            return head, POS_ALIAS[alias]
+        # 派生词（unreliable）不在词表里：`ut`/`ot` 会误伤 about/shut，排除掉
+        if len(head) >= 4 and alias not in ("ut", "ot"):
+            return head, POS_ALIAS[alias]
+    return tok, None
+
+
+POS_PUNCT = ".．。：:，,、；;"
+
+
+def parse_ant(lines):
+    """【反义】→ [{"word","pos","meaning"}]。
+
+    书上写法很不统一：`unreliableadj不可靠的，不能信赖的`（词性黏在词后）、
+    `roundabout adj：迁回的，拐弯抹角的`（词性单独成词）、`relaxation n。松驰`。
+    做法：按拉丁词扫描，词性是别名就并入上一段的释义，否则算新词。
+    """
+    t = clean_spaces(glue_word_spaces(join_lines(lines)))
+    out = []
+    if not t:
+        return out
+    toks = [(m.start(), m.end(), m.group(0))
+            for m in re.finditer(r"[A-Za-z][A-Za-z'\-]*", t)]
+    accepted = []
+    for st, en, tok in toks:
+        if tok.lower() in POS_ALIAS and len(tok) <= 4:
+            continue
+        if len(letters_only(tok)) < 3:
+            continue
+        accepted.append((st, en, tok))
+    for i, (st, en, tok) in enumerate(accepted):
+        seg_end = accepted[i + 1][0] if i + 1 < len(accepted) else len(t)
+        word, pos = _split_word_pos_meaning(tok)
+        tail = t[en:seg_end]
+        mp = re.match(r"\s*([A-Za-z]{1,4})[.．。：:]?\s*(.*)$", tail, re.S)
+        if mp and mp.group(1).lower() in POS_ALIAS:
+            pos = pos or POS_ALIAS.get(mp.group(1).lower())
+            tail = mp.group(2)
+        meaning = clean_spaces(tail.strip(" \t" + POS_PUNCT)) or None
+        if meaning and not CJK_RE.search(meaning):
+            meaning = None
+        if out and out[-1]["word"].lower() == word.lower():
+            continue
+        out.append({"word": word, "pos": pos, "meaning": meaning})
+    return out
+
+
+DERIV_RE = re.compile(
+    r"([A-Za-z][A-Za-z'’\-]{1,24})\s*"
+    r"(?:[\[［【「]\s*([^\]］】」\n]{0,45}?)\s*[\]］】」])?\s*"
+    r"(adj|adv|vi|vt|prep|conj|n|v|u|w)\.?\s*(真的)?",
+    re.I,
+)
+
+
+def parse_deriv(lines):
+    t = clean_spaces(glue_word_spaces(join_lines(lines)))
+    if not t:
+        return []
+    t = re.sub(r"派\s*生\s*】", "", t)  # 【派~生】
+    out = []
+    matches = list(DERIV_RE.finditer(t))
+    for i, m in enumerate(matches):
+        word = m.group(1)
+        if len(letters_only(word)) < 3:
+            continue
+        phon = clean_spaces(m.group(2)) if m.group(2) else None
+        if phon is not None:
+            phon = phon.strip("［［[]］]】「」 ")
+            if phon and not all((c in IPA_OK) or c.isalpha() for c in phon):
+                phon = None
+        pos = POS_ALIAS.get(m.group(3).lower())
+        seg_end = matches[i + 1].start() if i + 1 < len(matches) else len(t)
+        tail = t[m.end():seg_end]
+        meaning = clean_spaces(tail.strip(" ：:。，,／/")) or None
+        if meaning and not CJK_RE.search(meaning):
+            meaning = None
+        if out and out[-1]["word"].lower() == word.lower():
+            continue
+        out.append({"word": word, "phonetic": phon, "pos": pos, "meaning": meaning})
+    return out
+
+
+def _split_circled(text: str):
+    parts, cur = [], ""
+    for ch in text:
+        if ch in CIRCLED:
+            if cur.strip():
+                parts.append(cur.strip())
+            cur = ""
+        else:
+            cur += ch
+    if cur.strip():
+        parts.append(cur.strip())
+    return parts
+
+
+def _first_cjk_outside_paren(text: str):
     depth = 0
-    for i, ch in enumerate(s):
-        if ch in "(（[［":
+    for i, ch in enumerate(text):
+        if ch in "（(":
             depth += 1
-        elif ch in ")）]］":
+        elif ch in "）)":
             depth = max(0, depth - 1)
         elif depth == 0 and CJK_RE.match(ch):
             return i
     return -1
 
 
-def parse_phrases(text: str) -> list:
+def parse_phrases(lines):
+    text = clean_spaces(glue_tilde(join_lines(lines)))
+    if not text:
+        return []
     out = []
-    for chunk in split_phrase_chunks(text):
-        idx = first_cjk_outside_parens(chunk)
-        if idx < 0:
-            en, zh = chunk, None
+    for seg in _split_circled(text):
+        i = _first_cjk_outside_paren(seg)
+        if i <= 0:
+            if re.search(r"[A-Za-z]{2}", seg):
+                out.append({"en": clean_spaces(seg), "zh": None})
+            continue
+        en = clean_spaces(seg[:i].rstrip(" ：:，,"))
+        zh = clean_spaces(seg[i:])
+        if re.search(r"[A-Za-z]{2}", en):
+            out.append({"en": en, "zh": zh or None})
+    return out
+
+
+# ------------------------------------------------------------------ 词头对齐
+
+CHECKBOX = "口□■▢▪"
+
+
+def is_preview_line(line: str) -> bool:
+    """清单页上四栏预览词表的行：纯英文、没有音标、没有词性、没有标记。"""
+    s = line.strip()
+    # 勾选框字形 `口` 会被当成汉字，先当空白
+    s = re.sub(f"[{CHECKBOX}]", " ", s).strip()
+    if not s or CJK_RE.search(s):
+        return False
+    name, _ = marker_of(s)
+    if name:
+        return False
+    if re.search(r"[\[［【「][^\]］】」]{2,}[\]］】」]", s):
+        return False
+    if POS_STRICT_RE.search(s):
+        return False
+    if not re.match(r"^[A-Za-z]", s):
+        return False
+    toks = [t for t in s.split() if re.search(r"[A-Za-z]", t)]
+    # 预览行要么一行挤好几个词，要么是一个长串粘起来的词（`removalcontemptdiverseexecut`）；
+    # 正文词头是短词，且后面常跟音标行，所以不会被这里误杀。
+    if len(toks) >= 2:
+        return all(len(letters_only(t)) >= 2 for t in toks)
+    # 单 token 的长串（`lamboathpairpar`）也是预览行；正文词头若音标在下一行，
+    # 下一行以 `[`/`［` 开头、不是拉丁行，所以孤立的长词头不会被误杀。
+    return len(letters_only(s)) >= 10
+
+
+def find_body_start(lines: list[str]) -> int:
+    """清单页：左栏开头是预览词表，正文从第一个「后面 2 行内出标记」的词头开始。"""
+    for i, ln in enumerate(lines):
+        if CJK_RE.search(re.sub(f"[{CHECKBOX}]", " ", ln)) or not re.match(r"^[A-Za-z]", ln.strip()):
+            continue
+        if is_preview_line(ln):
+            continue
+        for j in range(i + 1, min(i + 3, len(lines))):
+            name, _ = marker_of(lines[j])
+            if name:
+                return i
+    return 0
+
+
+def strip_preview(lines: list[str], min_run: int = 2) -> list[str]:
+    """丢掉清单页里的预览词表块（连续 ≥3 行预览行）。
+
+    预览块在左栏开头和右栏开头各有一段（同一页），会污染词头对齐：`p9`
+    的 `remindcontradict document] exotic` 会被当成 `remind` 的词头。
+    """
+    drop = [False] * len(lines)
+    i = 0
+    while i < len(lines):
+        if not is_preview_line(lines[i]):
+            i += 1
+            continue
+        j = i
+        while j < len(lines) and is_preview_line(lines[j]):
+            j += 1
+        if j - i >= min_run:
+            for k in range(i, j):
+                drop[k] = True
+        i = j
+    return [ln for ln, d in zip(lines, drop) if not d]
+
+
+def is_headword_line(line: str) -> bool:
+    s = line.strip()
+    if not s or len(s) > 60:
+        return False
+    if CJK_RE.search(s):
+        return False
+    if not re.match(r"^[A-Za-z]", s):
+        return False
+    if NOISE_RE.match(s):
+        return False
+    # 4 个以上英文词的整行必然是例句/考题碎片，不是词头
+    toks = [t for t in s.split() if re.search(r"[A-Za-z]", t)]
+    if len(toks) >= 4 and not POS_STRICT_RE.search(s) and \
+            not re.search(r"[\[［【「][^\]］】」]{2,}[\]］】」]", s):
+        return False
+    return True
+
+
+def head_lead(line: str) -> str:
+    """行首拉丁串（可能粘着音标前的垃圾），返回纯字母。"""
+    m = re.match(r"^[A-Za-z][A-Za-z'’\-]*", line.strip())
+    return letters_only(m.group(0)) if m else ""
+
+
+def match_headword(line: str, words: list[str], ptr: int, used=None):
+    """在 words[ptr-1 : ptr+25] 里找该行的词头。返回 (index, how, matched_word)。
+
+    书上正文顺序与一轮词表顺序一致（清单页是同一顺序的四栏预览），所以先用
+    顺序窗口；窗口内找不到再全局找一次（`used` 里已切过的词跳过），打完
+    `*_out_of_order` 标记，避免因个别错序吞掉后面的词条。
+    """
+    lead = head_lead(line)
+    if not lead:
+        return None
+    hit = _match_in_window(line, lead, words, max(0, ptr - 1), min(len(words), ptr + 25))
+    if hit:
+        return hit
+    if used:
+        hit = _match_in_window(line, lead, words, 0, len(words), used)
+        if hit:
+            return hit[0], hit[1] + "_out_of_order", hit[2]
+    return None
+
+
+def _match_in_window(line, lead, words, lo, hi, used=None):
+    idx = list(range(lo, hi))
+    if used:
+        idx = [j for j in idx if j not in used]
+    # 1) 精确前缀
+    for j in range(lo, hi):
+        w = letters_only(words[j])
+        if w and lead.startswith(w):
+            # 判边界：`strain` 不能吃 `straight`
+            nxt = line.strip()[len(re.match(r'^[A-Za-z\'’\-]*', line.strip()).group(0)):]
+            if lead == w or nxt[:1] in ("", " ", "[", "［", "\t") or not nxt[:1].isalpha():
+                return j, "exact", words[j]
+    # 2) 词头被 OCR 认长/认短：词形是 lead 的前缀（`strainstreim`）
+    for j in idx:
+        w = letters_only(words[j])
+        if len(w) >= 4 and lead.startswith(w[: max(4, len(w) - 1)]):
+            return j, "prefix", words[j]
+    # 3) 模糊：短词（≤4 字母）用编辑距离配任何短串都会误中（`his` 能配上 `zip`），
+    #    所以只对 ≥5 字母、首字母相同、且距离很小的词做模糊匹配。
+    best = None
+    for j in idx:
+        w = letters_only(words[j])
+        if len(w) < 5 or not lead or lead[0] != w[0]:
+            continue
+        cand = lead[: len(w) + 1]
+        d = edist(cand, w)
+        lim = 1 if len(w) <= 6 else 2
+        if d <= lim and (best is None or d < best[0]):
+            best = (d, j)
+    if best:
+        return best[1], "fuzzy", words[best[1]]
+    return None
+
+
+def head_score(line: str, word: str) -> int:
+    """该行当 `word` 的词头有多像：3 精确 / 2 粘字 / 1 模糊 / 0 不像。"""
+    lead = head_lead(line)
+    w = letters_only(word)
+    if not lead or not w:
+        return 0
+    if lead.startswith(w):
+        run = re.match(r"^[A-Za-z'\u2019\-]*", line.strip()).group(0)
+        nxt = line.strip()[len(run):]
+        if lead == w or not nxt[:1].isalpha():
+            return 3
+    if len(w) >= 4 and lead.startswith(w[: max(4, len(w) - 1)]):
+        return 2
+    if len(w) >= 5 and lead[0] == w[0]:
+        lim = 1 if len(w) <= 6 else 2
+        # 取两种截断的最小距离：OCR 多认一个字母（shuuttle）、或多认又替错
+        # 几个字母（relanceTrilarens ← reliance）
+        d = min(edist(lead[: len(w)], w), edist(lead[: len(w) + 1], w))
+        if d <= lim:
+            return 1
+    return 0
+
+
+def followed_by_marker(pages_lines, i: int) -> bool:
+    """第 i 行后面紧跟标记行（【词义】…）——本书里这就是词头行的排版规律。"""
+    for j in range(i + 1, min(i + 3, len(pages_lines))):
+        name, _ = marker_of(pages_lines[j][1])
+        if name:
+            return True
+    return False
+
+
+def segment_unit(pages_lines, words):
+    """把某单元的正文行切成 [{idx, how, lines}]（idx=None 表示认不出的词头）。
+
+    用**单调对齐**（LCS 式 DP）而不是「指针推进」：清单页上残留的预览行
+    （`surround` 单独成行）会命中序号 87，指针一推进，后面整段正文就全变成
+    「乱序」。DP 以「全局对上的词最多」为目标，自动把这类孤立行丢掉。
+    """
+    cands = [(i, ln) for i, (pg, ln) in enumerate(pages_lines) if is_headword_line(ln)]
+    n, m = len(cands), len(words)
+    if not n:
+        return []
+    score = [[0] * m for _ in range(n)]
+    for a, (_, ln) in enumerate(cands):
+        for b in range(m):
+            sc = head_score(ln, words[b])
+            if sc:
+                score[a][b] = sc
+    dp = [[0] * (m + 1) for _ in range(n + 1)]
+    for a in range(1, n + 1):
+        row, prev_row, srow = dp[a], dp[a - 1], score[a - 1]
+        for b in range(1, m + 1):
+            best = prev_row[b] if prev_row[b] > row[b - 1] else row[b - 1]
+            if srow[b - 1]:
+                cand = prev_row[b - 1] + srow[b - 1]
+                if cand > best:
+                    best = cand
+            row[b] = best
+    pairs = []
+    a, b = n, m
+    while a > 0 and b > 0:
+        if score[a - 1][b - 1] and dp[a][b] == dp[a - 1][b - 1] + score[a - 1][b - 1]:
+            pairs.append((cands[a - 1][0], b - 1, score[a - 1][b - 1]))
+            a -= 1
+            b -= 1
+        elif dp[a][b] == dp[a - 1][b]:
+            a -= 1
         else:
-            en, zh = chunk[:idx].strip(" :：,，"), chunk[idx:].strip()
-        if not en or not re.search(r"[A-Za-z]", en):
-            continue
-        en = re.sub(r"^[A-Z@0-9]\s+", "", en).strip()      # 圈码认残留下的单字符
-        if not en:
-            continue
-        wc = len(en.split())
-        if wc > 8:
-            continue
-        if zh is None and (wc > 4 or en[:1].isupper()):
-            continue
-        out.append({"en": en, "zh": zh or None})
-    return out
+            b -= 1
+    pairs.reverse()
+    how_of = {3: "exact", 2: "prefix", 1: "fuzzy"}
+    starts = {line_i: (j, how_of[sc]) for line_i, j, sc in pairs}
 
-
-DERIV_RE = re.compile(
-    rf"(?P<w>[A-Za-z][A-Za-z'’\-]{{1,24}})"
-    rf"(?:\s*[\[［]\s*(?P<ph>[^\]］]{{0,60}}?)\s*[\]］])?"
-    rf"\s*(?P<pos>(?:[a-z]{{1,5}}\.){{1,2}})?"
-    rf"\s*(?P<zh>[{CJK}].*)?"
-)
-ANT_RE = re.compile(rf"^{DERIV_RE.pattern}$")
-
-
-def parse_deriv(text: str) -> list:
-    """【派生】strained ['streɪnd] adj. 紧张的;勉强的，不自然的"""
-    out = []
-    for chunk in split_phrase_chunks(text):
-        for m in DERIV_RE.finditer(chunk):
-            if not m.group("zh") and not m.group("ph") and not m.group("pos"):
-                continue  # 只是正文里的一个英文词
-            out.append({
-                "word": m.group("w"),
-                "phonetic": (m.group("ph") or "").strip() or None,
-                "pos": m.group("pos") or None,
-                "meaning": (m.group("zh") or "").strip() or None,
-            })
-    return out
-
-
-def parse_ant(text: str) -> list:
-    """【反义】relaxation n. 松弛,缓和"""
-    out = []
-    for chunk in split_phrase_chunks(text):
-        m = ANT_RE.match(chunk)
-        if not m or not (m.group("pos") or m.group("zh")):
-            continue        # 光一个英文词的同义块，不是反义
-        out.append({
-            "word": m.group("w"),
-            "phonetic": (m.group("ph") or "").strip() or None,
-            "pos": m.group("pos") or None,
-            "meaning": (m.group("zh") or "").strip() or None,
-        })
-    return out
-
-
-SYN_STOP = {"n", "v", "adj", "adv", "vt", "vi", "a", "ad", "prep", "to", "and",
-            "or", "sth", "the", "this", "that", "these", "those", "of", "in", "on"}
-
-
-def parse_syn(text: str) -> list:
-    t = text
-    for ch in CIRCLED:
-        t = t.replace(ch, " ")
-    t = re.sub(rf"[{CJK}][{CJK}，,、;；:：()（）.…]*", " ", t)   # 丢掉中文注释
-    out = []
-    for tok in re.split(r"[\s/,、;；|]+", t):
-        tok = tok.strip(" .:：()（）[]【】'\"“”")
-        if not re.fullmatch(r"[A-Za-z][A-Za-z'’\-]{1,24}", tok):
-            continue
-        if tok.isupper() or len(tok) <= 2:
-            continue
-        if tok.lower() in SYN_STOP:
-            continue
-        tok = tok.lower()
-        if tok not in out:
-            out.append(tok)
-    return out
-
-
-SENT_EN_RE = re.compile(
-    rf"(?P<en>[A-Za-z][A-Za-z0-9 ,.;:'’\"“”!?()\-~]{{8,}}?[.?!])"
-    rf"\s*(?P<zh>[{CJK}][^;；]*)"
-)
-
-
-def extract_examples(items: list) -> list:
-    out = []
-    for it in items:
-        for m in SENT_EN_RE.finditer(it):
-            en = norm_spaces(m.group("en"))
-            zh = norm_spaces(m.group("zh"))
-            if len(en.split()) < 3 or not CJK_RE.search(zh):
+    chunks, cur = [], None
+    for i, (page, line) in enumerate(pages_lines):
+        if i in starts:
+            j, how = starts[i]
+            if cur is not None and cur["idx"] == j:
+                cur["lines"].append((page, line))  # 同词重复词头（多词性分条印）
                 continue
-            if not re.match(r"[A-Z\"“‘'(~]", en):
-                continue
-            out.append({"en": en, "zh": zh})
-    return out
-
-
-def parse_example_block(text: str) -> list:
-    out = []
-    for m in SENT_EN_RE.finditer(text):
-        en, zh = norm_spaces(m.group("en")), norm_spaces(m.group("zh"))
-        if len(en.split()) >= 3:
-            out.append({"en": en, "zh": zh})
-    if not out:
-        t = norm_spaces(text)
-        if t:
-            out.append({"en": t, "zh": None})
-    return out
-
-
-# ---------------------------------------------------------------- 词条解析
-
-def has_item_marks(text: str) -> bool:
-    if any(ch in text for ch in CIRCLED):
-        return True
-    return any(ITEM_LEAD_RE.match(ln) for ln in text.splitlines())
-
-
-def parse_entry(segment: list) -> dict:
-    """segment: [(page, line), ...]，第一行是 headword 行。"""
-    raw = "\n".join(ln for _, ln in segment)
-    pages = sorted({p for p, _ in segment})
-    lines = [ln for _, ln in segment]
-    head = lines[0] if lines else ""
-
-    # headword 行 = 第一行「像 headword」的行（OCR 常把音标/词性拆到下一行）
-    head_idx = 0
-    for k, ln in enumerate(lines[:4]):
-        if candidate_token(ln):
-            head_idx = k
-            break
-    head = lines[head_idx] if lines else ""
-    phonetic = extract_phonetic(head)
-    head_pos = parse_pos_list(head[PHON_OPEN_RE.search(head).end():] if PHON_OPEN_RE.search(head) else head)
-    if not phonetic and head_idx + 1 < len(lines):
-        nxt = lines[head_idx + 1].strip()
-        if len(nxt) <= 40 and re.match(r"^[\[［][^\]］]{1,30}[\]］]\s*(?:[a-z]{1,5}\.)?$", nxt):
-            phonetic = extract_phonetic(nxt)
-    if not head_pos:
-        for ln in lines[head_idx:head_idx + 2]:
-            head_pos = parse_pos_list(ln)
-            if head_pos:
-                break
-
-    body = "\n".join(lines[head_idx + 1:])
-    blocks = split_marker_blocks(body)
-
-    mnemonic = None
-    notes, leftovers = [], []
-    senses = []
-    syn, ant, deriv, phrases, examples = [], [], [], [], []
-    guessed_markers = 0
-    cur = None
-    pending_pos = head_pos
-
-    for slot, text, name, guessed in blocks:
-        if guessed:
-            guessed_markers += 1
-        if slot is None:
-            if text.strip():
-                leftovers.append(text)
+            cur = {"idx": j, "how": how, "lines": [(page, line)]}
+            chunks.append(cur)
             continue
+        if cur is None:
+            continue
+        if is_headword_line(line) and followed_by_marker(pages_lines, i):
+            same = cur["idx"] is not None and head_lead(line) == letters_only(words[cur["idx"]])
+            if same:
+                cur["lines"].append((page, line))
+                continue
+            # 认不出词头的词条：照样断句，内容留给 assign_orphans
+            cur = {"idx": None, "how": "lost", "lines": [(page, line)]}
+            chunks.append(cur)
+            continue
+        cur["lines"].append((page, line))
+    return chunks
+
+
+# ------------------------------------------------------------------ 词条组装
+
+def assemble(word, section, unit, chunk, raw_chunk_text, unit_words):
+    flags = []
+    pages = []
+    lines = chunk["lines"] if chunk else []
+    for p, _ in lines:
+        if p not in pages:
+            pages.append(p)
+    head_line = lines[0][1] if lines else ""
+    phon, head_pos = parse_head_phon_pos(head_line, word)
+    how = chunk["how"] if chunk else ""
+    if how == "lost":
+        flags.append("headword_unverified")
+    if how.startswith("fuzzy"):
+        flags.append("fuzzy_headword")
+    if how.startswith("prefix"):
+        flags.append("glued_headword")
+    if how.endswith("out_of_order"):
+        flags.append("out_of_order_headword")
+
+    blocks = split_blocks([ln for _, ln in lines[1:]]) if lines else []
+    def_blocks, mnemonic, syn, ant, deriv, phrases, examples = [], None, [], [], [], [], []
+    pos_seq = []
+    for name, blines in blocks:
+        slot = MARKER_SLOT.get(name) if name else None
         if slot == "mnemonic":
-            t = norm_spaces(text)
-            mnemonic = f"{mnemonic} {t}".strip() if mnemonic else (t or None)
+            m = clean_spaces(join_lines(blines))
+            if m:
+                mnemonic = (mnemonic + " " + m) if mnemonic else m
         elif slot == "pos":
-            poss = parse_pos_list(text) or pending_pos
-            cur = {"pos": "/".join(poss) if poss else None, "items": []}
-            senses.append(cur)
-            pending_pos = poss
+            p = parse_pos_block(blines)
+            if p:
+                pos_seq.append(p)
         elif slot == "def":
-            items = split_items(text)
-            if cur is None:
-                cur = {"pos": "/".join(pending_pos) if pending_pos else None, "items": []}
-                senses.append(cur)
-            cur["items"].extend(items)
-            examples.extend(extract_examples(items))
+            def_blocks.append((pos_seq[-1] if pos_seq else head_pos, blines))
         elif slot == "syn":
-            # 有些行其实是【反义】（标记名被认残并进同义块）：词 + 词性 + 中文
-            ant_lines = [c for c in split_phrase_chunks(text)
-                         if ANT_RE.match(c) and (ANT_RE.match(c).group("pos")
-                                                 or ANT_RE.match(c).group("zh"))]
-            if ant_lines:
-                ant.extend(parse_ant("\n".join(ant_lines)))
-                text = "\n".join(c for c in split_phrase_chunks(text) if c not in ant_lines)
-            syn.extend(parse_syn(text))
+            syn.extend(parse_syn(blines))
         elif slot == "ant":
-            ant.extend(parse_ant(text))
+            ant.extend(parse_ant(blines))
         elif slot == "deriv":
-            deriv.extend(parse_deriv(text))
+            deriv.extend(parse_deriv(blines))
         elif slot == "phrase":
-            phrases.extend(parse_phrases(text))
+            phrases.extend(parse_phrases(blines))
         elif slot == "examples":
-            examples.extend(parse_example_block(text))
-        elif slot in UNMODELED:
-            t = norm_spaces(text)
-            if t:
-                notes.append(t)
-            # 标记名认残的块里也可能藏着释义条目
-            if has_item_marks(text):
-                items = split_items(text)
-                if cur is None:
-                    cur = {"pos": "/".join(head_pos) if head_pos else None, "items": []}
-                    senses.append(cur)
-                cur["items"].extend(items)
-                examples.extend(extract_examples(items))
+            examples.extend(parse_example_block(blines))
+        elif slot == "exam":
+            flags.append("has_exam_block")
 
-    # headword 行之后、第一个标记之前散落的文本
-    for blk in leftovers:
-        bt = norm_spaces(blk)
-        if not bt:
-            continue
-        if has_item_marks(blk):
-            items = split_items(blk)
-            if cur is None:
-                cur = {"pos": "/".join(head_pos) if head_pos else None, "items": []}
-                senses.append(cur)
-            cur["items"].extend(items)
-            examples.extend(extract_examples(items))
-        else:
-            notes.append(bt)
+    senses = parse_senses(def_blocks)
+    examples.extend(parse_def_examples(senses))
 
-    senses = [s for s in senses if s["items"] or s["pos"]]
-    pos_summary = []
-    for s in senses:
-        for p in (s["pos"] or "").split("/"):
-            if p and p not in pos_summary:
-                pos_summary.append(p)
-    if not pos_summary:
-        pos_summary = list(head_pos)
+    # 去重
+    seen = set()
+    phrases = [p for p in phrases
+               if not ((p["en"] or "").lower() in seen or seen.add((p["en"] or "").lower()))]
+    seen = set()
+    examples = [e for e in examples
+                if not ((e["en"] or "").lower() in seen or seen.add((e["en"] or "").lower()))]
 
-    seen, ex2 = set(), []
-    for ex in examples:
-        k = (ex["en"], ex["zh"])
-        if k not in seen:
-            seen.add(k)
-            ex2.append(ex)
+    if not chunk:
+        flags.append("no_body")
+    elif not senses:
+        flags.append("no_senses")
+    elif not any(CJK_RE.search(it) for s in senses for it in s["items"]):
+        flags.append("no_chinese_in_senses")
 
-    return {
-        "phonetic": phonetic,
-        "pos": "/".join(pos_summary) if pos_summary else None,
+    # 回溯校验
+    raw_letters = letters_only(raw_chunk_text) if raw_chunk_text else ""
+    for d in deriv:
+        lw = letters_only(d["word"])
+        if lw and lw not in raw_letters:
+            flags.append("hallucinated_deriv")
+            break
+    for a in ant:
+        if letters_only(a["word"]) not in raw_letters:
+            flags.append("hallucinated_ant")
+            break
+    for s in syn:
+        if letters_only(s) not in raw_letters:
+            flags.append("hallucinated_syn")
+            break
+    if any(len(letters_only(x)) >= 14 and letters_only(x) not in KNOWN_WORDS for x in syn):
+        flags.append("syn_glued")
+
+    pos_all = []
+    for p in ([head_pos] + pos_seq):
+        if p and p not in pos_all:
+            pos_all.append(p)
+    pos = "/".join(pos_all) if pos_all else None
+
+    entry = {
+        "word": word,
+        "phonetic": phon,
+        "pos": pos,
+        "section": section,
+        "unit": unit,
         "pdf_pages": pages,
         "mnemonic": mnemonic,
         "senses": senses,
@@ -643,741 +873,313 @@ def parse_entry(segment: list) -> dict:
         "ant": ant,
         "deriv": deriv,
         "phrases": phrases,
-        "examples": ex2,
-        "notes": " ".join(notes) if notes else None,
-        "_raw": raw,
-        "_guessed_markers": guessed_markers,
+        "examples": examples,
+        "ocr_confidence": None,
+        "flags": flags,
     }
+    entry["ocr_confidence"] = score_confidence(entry)
+    return entry
 
 
-# ---------------------------------------------------------------- 输入加载
-
-def load_all_entries(path: Path) -> list:
-    with path.open(encoding="utf-8") as fh:
-        return json.load(fh)
-
-
-def load_units(path: Path) -> dict:
-    with path.open(encoding="utf-8") as fh:
-        return json.load(fh)
-
-
-def load_pages(ocr_dir: Path) -> dict:
-    """page_0009.txt → {9: [line, ...]}"""
-    pages = {}
-    for p in sorted(ocr_dir.glob("page_*.txt")):
-        m = re.search(r"(\d+)", p.stem)
-        if not m:
-            continue
-        pages[int(m.group(1))] = p.read_text(encoding="utf-8", errors="replace").splitlines()
-    return pages
-
-
-def infer_page_offset(units: dict, entries: list) -> int:
-    """书上页码 → PDF 页码的偏移（正常是 8）。用各单元首页与一轮 page 最小值的中位数估。"""
-    diffs = []
-    for section in ("必考词", "基础词"):
-        for u in units.get(section, []):
-            pages = [e["page"] for e in entries
-                     if e["section"] == section and e["unit"] == u["unit"] and e.get("page")]
-            if pages:
-                diffs.append(u["pdf_start"] - min(pages))
-    if not diffs:
-        return 0
-    diffs.sort()
-    return diffs[len(diffs) // 2]
+def score_confidence(e):
+    """可解释的扣分制：0.55 起始分。"""
+    s = 0.55
+    fl = e["flags"]
+    if "no_body" in fl:
+        return 0.0
+    if "fuzzy_headword" not in fl and "glued_headword" not in fl:
+        s += 0.10
+    if e["phonetic"]:
+        s += 0.06
+    if e["senses"]:
+        s += 0.10
+        s += 0.04 * min(3, len(e["senses"]))
+    if any(CJK_RE.search(it) for s in e["senses"] for it in s["items"]):
+        s += 0.06
+    if e["deriv"]:
+        s += 0.03
+    if e["phrases"]:
+        s += 0.03
+    if e["syn"] or e["ant"]:
+        s += 0.02
+    if e["mnemonic"]:
+        s += 0.02
+    for bad in ("fuzzy_headword", "no_senses", "no_chinese_in_senses",
+                "hallucinated_deriv", "hallucinated_ant", "hallucinated_syn",
+                "has_exam_block"):
+        if bad in fl:
+            s -= 0.12 if bad.startswith("hallucinated") else 0.06
+    return round(max(0.05, min(0.95, s)), 2)
 
 
-def unit_word_lists(entries: list) -> dict:
-    """(section, unit) → [word, ...]，保持一轮 JSON 的书上顺序。"""
-    out = {}
+# ------------------------------------------------------------------ units.json
+
+def build_units(entries, pages):
+    """单元 → PDF 页区间。
+
+    做法（对 444 页实测精度：56/56 单元与书上「本单元词汇」清单页吻合）：
+
+    1. 统计每页命中每个单元词表的词数（词表来自一轮 all_entries_v2.json）。
+    2. 按页顺序走指针 p：只有当下一页里 p+1 单元的命中数 ≥6 且明显高于 p 单元时
+       才把指针推进一格——保证单调、不越级（正文里偶发出现后面单元的词，如 p27
+       命中「必考词 20」4 个词，不是该单元的起点）。
+    3. 页码里全零命中的「空页」（OCR 整页丢失，如 p357）默认归上一单元；但若它的
+       下一页正好是新单元的起点，它其实是被 OCR 吃掉的清单页，改归新单元。
+    4. 附录页（p406 起的「简单基础」/p414 起的两栏索引）用版式识别剔出，正文到
+       p405 结束。
+    """
+    from collections import OrderedDict
+    units = OrderedDict()
     for e in entries:
-        out.setdefault((e["section"], e["unit"]), []).append(e["word"])
+        units.setdefault((e["section"], e["unit"]), []).append(e["word"].lower())
+    keys = [("必考词", u) for u in range(1, 27)] + [("基础词", u) for u in range(1, 31)]
+    toks = {n: set(re.sub(r"[^a-z]", " ", t.lower()).split()) for n, t in pages.items()}
+    hits = {k: {n: sum(1 for w in units.get(k, []) if w in tk) for n, tk in toks.items()}
+            for k in keys}
+    # 附录起点：页码 >400 且过半行以页码数字结尾（两栏索引）或出现「简单基础」
+    appendix = max(pages)
+    for n in sorted(pages):
+        if n < 390:
+            continue
+        lines = [ln.strip() for ln in pages[n].splitlines() if ln.strip()]
+        if not lines:
+            continue
+        idx_like = sum(1 for ln in lines if re.search(r"\s\d{1,3}$", ln))
+        if idx_like >= 0.3 * len(lines) or "简单基础" in pages[n]:
+            appendix = n
+            break
+    body_pages = [n for n in sorted(pages) if 9 <= n < appendix]
+
+    assign = {}
+    p = 0
+    first = {}
+
+    def is_list_page(txt: str) -> bool:
+        """清单页：页首是 `Uni`/`Jni` 之类，或开头有「本单元词」。"""
+        head = [ln.strip() for ln in txt.splitlines() if ln.strip()][:2]
+        if head and re.match(r"^(Unit?|Uni|Un|Jni|Unl)\s*$", head[0]):
+            return True
+        return "单元" in txt[:300]
+
+    for n in body_pages:
+        while p + 1 < len(keys):
+            cur_h, nxt_h = hits[keys[p]][n], hits[keys[p + 1]][n]
+            if (nxt_h >= 6 and nxt_h > cur_h + 2) or \
+                    (is_list_page(pages[n]) and nxt_h >= 3 and nxt_h > cur_h):
+                p += 1
+            else:
+                break
+        assign[n] = p
+        first.setdefault(keys[p], n)
+    # 空页修正：全零命中且下一页是新单元的起点 → 归新单元
+    for k, n0 in list(first.items()):
+        if k == keys[0]:
+            continue
+        prev_page = n0 - 1
+        if prev_page in assign and assign[prev_page] == assign[n0] - 1:
+            if all(hits[kk][prev_page] == 0 for kk in keys):
+                first[k] = prev_page
+                assign[prev_page] = assign[n0]
+
+    out = {"必考词": [], "基础词": []}
+    for i, k in enumerate(keys):
+        start = first[k]
+        end = (first[keys[i + 1]] - 1) if i + 1 < len(keys) else (appendix - 1)
+        out[k[0]].append({"unit": k[1], "pdf_start": start, "pdf_end": end})
     return out
 
 
-# ---------------------------------------------------------------- headword 候选
+# ------------------------------------------------------------------ 主流程
 
-def candidate_token(line: str):
-    """若这一行看起来像 headword 行，返回行首英文词，否则 None。"""
-    s = line.strip()
-    s = re.sub(r"^[^A-Za-z\u4e00-\u9fff]+", "", s).strip()
-    if not s or len(s) > HEADWORD_MAX_LEN:
-        return None
-    # 行内被 OCR 拼上了标记（「remainder [...] n. 【助记】…」）→ 在标记处截断
-    mk = scan_markers(s)
-    if mk:
-        s = s[: mk[0][0]].strip()
-    if not s or CJK_RE.search(s) or s[0] in "[【(（{":
-        return None
-    m = re.match(r"^([A-Za-z][A-Za-z'’\-]{1,24})", s)
-    if not m:
-        return None
-    tok = m.group(1)
-    if len(tok) < 3 or not re.search(r"[aeiouy]", tok.lower()):
-        return None
-    rest = s[m.end():]
-    if "~" in rest:                        # 正文里 "the ~ of ..."
-        return None
-    if len(rest.split()) > 7:
-        return None
-    return tok
-
-
-def head_likeness(stream: list, idx: int) -> int:
-    """headword 行长什么样：有音标 / 有词性 / 紧跟标记行，加分。"""
-    ln = stream[idx][1]
-    score = 0
-    if PHON_OPEN_RE.search(ln):
-        score += 2
-    if parse_pos_list(ln):
-        score += 1
-    nxt = ""
-    for k in range(idx + 1, min(idx + 3, len(stream))):
-        if stream[k][1].strip():
-            nxt = stream[k][1]
-            break
-    if nxt and scan_markers(nxt):
-        score += 2
-    body = ln.split(None, 1)[1] if len(ln.split(None, 1)) > 1 else ""
-    if re.search(r"[.,;]$", body.strip()) or len(body.split()) >= 4:
-        score -= 1
-    return score
-
-
-def align(expected: list, candidates: list, window: int = ALIGN_WINDOW):
-    """顺序贪心对齐：每个预期词在窗口内找最像的候选（先看相似度，再看 headword 像不像）。
-
-    返回 [(expected_idx, candidate_idx) 或 (expected_idx, None), ...]，外加未用到的候选。
-    """
-    letters = [letters_only(w) for w in expected]
-    matched, used = [], set()
-    pos = 0
-    for wi, w in enumerate(expected):
-        best_key, best_j = None, None
-        for j in range(pos, min(len(candidates), pos + window)):
-            if j in used:
-                continue
-            tok = candidates[j][1]
-            s = similar(w, tok)
-            if not s:
-                continue
-            if s == 1:
-                # 这是不是后面某个词的原形？是的话别抢，留给它
-                nt = letters_only(tok)
-                if any(letters[k] == nt for k in range(wi + 1, min(len(expected), wi + 8))):
-                    continue
-            key = (s, candidates[j][2])
-            if best_key is None or key > best_key:
-                best_key, best_j = key, j
-        if best_j is None:
-            matched.append((wi, None))
+def load_pages(limit=None):
+    pages = {}
+    for p in sorted(OCR_DIR.glob("page_*.txt")):
+        n = int(re.search(r"(\d+)", p.name).group(1))
+        if limit and n > limit:
             continue
-        matched.append((wi, best_j))
-        used.add(best_j)
-        pos = best_j + 1
-    unused = [c for j, c in enumerate(candidates) if j not in used]
-    return matched, unused
+        pages[n] = p.read_text(encoding="utf-8")
+    return pages
 
 
-def is_preview_row(line: str, expected_letters: set) -> bool:
-    """单词表页的勾选框清单：一行里挤着好几个本单元的词（4 列排版）。"""
-    toks = re.findall(r"[A-Za-z][A-Za-z'’\-]{2,24}", line)
-    if len(toks) < 2:
-        return False
-    hits = sum(1 for t in toks if letters_only(t) in expected_letters)
-    return hits >= 2 or (hits >= 1 and len(toks) >= 4)
+def read_entries():
+    return json.loads(ROUND1_JSON.read_text(encoding="utf-8"))
 
 
-def build_segments(pages: dict, section: str, unit: int, expected: list,
-                   first_page: int, last_page: int, stats: dict):
-    """返回 ([(word, segment, exact_head, ocr_head), ...], leading_segment)。"""
-    expected_letters = {letters_only(w) for w in expected}
-    stream = []
-    for p in range(first_page, last_page + 1):
-        for ln in pages.get(p, []):
-            if is_noise(ln):
-                continue
-            # 单词表页（首页）的清单行不能当 headword，否则一个单元的词会被清单吃光
-            if p == first_page and is_preview_row(ln, expected_letters):
-                continue
-            stream.append((p, ln))
+def assign_orphans(chunks, n_words):
+    """把认不出词头的块，配给被跳过的词条。
 
-    cands = []  # (stream_idx, token, likeness)
-    for idx, (_p, ln) in enumerate(stream):
-        tok = candidate_token(ln)
-        if tok:
-            cands.append((idx, tok, head_likeness(stream, idx)))
-
-    matched, unused = align(expected, cands)
-    for w in unused:
-        stats["unmatched_candidates"].append(
-            {"section": section, "unit": unit, "token": w[1], "page": stream[w[0]][0]})
-    for wi, cj in matched:
-        if cj is None:
-            stats["missing_in_ocr"].append(
-                {"section": section, "unit": unit, "word": expected[wi]})
-
-    ok = [(wi, cj) for wi, cj in matched if cj is not None]
+    只在「两侧都匹配上、中间跳过的词数 == 中间孤立块数」时才配——相邻两个已
+    匹配词把位置钉死了，这种配对几乎不可能错。否则保持 idx=None，写入
+    unmatched.json 供人工看。
+    """
     out = []
-    for k, (wi, cj) in enumerate(ok):
-        start = cands[cj][0]
-        stop = cands[ok[k + 1][1]][0] if k + 1 < len(ok) else len(stream)
-        # 防止「下一个词没认出来」时整段被前一条吞掉：
-        # 遇到「像 headword 且能对上本单元某个词」的行就截断
-        for kk in range(start + 1, stop):
-            if head_likeness(stream, kk) < 3:
+    i = 0
+    while i < len(chunks):
+        if chunks[i]["idx"] is not None:
+            out.append(chunks[i])
+            i += 1
+            continue
+        j = i
+        while j < len(chunks) and chunks[j]["idx"] is None:
+            j += 1
+        run = chunks[i:j]
+        prev_idx = out[-1]["idx"] if out else -1
+        next_idx = chunks[j]["idx"] if j < len(chunks) else n_words
+        if next_idx is not None and len(run) == next_idx - prev_idx - 1:
+            for k, c in enumerate(run):
+                c = dict(c)
+                c["idx"] = prev_idx + 1 + k
+                out.append(c)
+        else:
+            out.extend(run)
+        i = j
+    return out
+
+
+def parse_all(limit=None):
+    pages = load_pages(limit)
+    r1 = read_entries()
+    units_cfg = json.loads(UNITS_JSON.read_text(encoding="utf-8"))
+    ranges = {}
+    for sec, lst in units_cfg.items():
+        for u in lst:
+            ranges[(sec, u["unit"])] = (u["pdf_start"], u["pdf_end"])
+
+    by_unit = {}
+    for e in r1:
+        by_unit.setdefault((e["section"], e["unit"]), []).append(e)
+
+    KNOWN_WORDS.clear()
+    KNOWN_WORDS.update(e["word"].lower() for e in r1)
+    entries, unmatched = [], []
+    for key in sorted(by_unit, key=lambda k: (k[0] != "必考词", k[1])):
+        words = [e["word"].lower() for e in by_unit[key]]
+        lo, hi = ranges.get(key, (1, max(pages)))
+        plines = []
+        for n in range(lo, hi + 1):
+            if n not in pages:
                 continue
-            tok = candidate_token(stream[kk][1])
-            if not tok:
-                continue
-            if any(similar(tok, w) for w in expected):
-                stop = kk
-                stats["truncated_segments"] += 1
-                break
-        seg = stream[start:stop]
-        ocr_head = cands[cj][1]
-        out.append((expected[wi], seg, ocr_head.lower() == expected[wi].lower(), ocr_head))
-
-    leading = stream[: cands[ok[0][1]][0]] if ok else stream
-    return out, leading
-
-
-def preview_page_words(lines: list) -> list:
-    """单词表页（勾选框清单）里的英文词——一页 4 列，不能只看行首。"""
-    words = []
-    for ln in lines:
-        for tok in re.findall(r"[A-Za-z][A-Za-z'’\-]{2,24}", ln):
-            if not re.search(r"[aeiouy]", tok.lower()):
-                continue
-            words.append(tok)
-    return words
-
-
-# ---------------------------------------------------------------- 置信度
-
-def score_confidence(entry: dict, flags: list, exact_head: bool) -> float:
-    c = 1.0
-    if not entry["senses"]:
-        c -= 0.30
-    if not exact_head:
-        c -= 0.10
-    if not entry["phonetic"]:
-        c -= 0.05
-    if not entry["mnemonic"]:
-        c -= 0.05
-    first_items = "".join(entry["senses"][0]["items"]) if entry["senses"] else ""
-    if entry["senses"] and len(CJK_RE.findall(first_items)) < 3:
-        c -= 0.10
-    for f in flags:
-        if f.startswith("hallucinated"):
-            c -= 0.10
-        elif f in ("ocr_garbled", "marker_name_garbled"):
-            c -= 0.08
-        elif f in ("no_phonetic", "no_mnemonic", "empty_sense_items"):
-            c -= 0.03
-    return round(max(0.05, min(1.0, c)), 3)
+            page_lines = [ln for ln in pages[n].splitlines()
+                          if ln.strip() and not NOISE_RE.match(ln)]
+            if n == lo and len(page_lines) > 20:
+                # 清单页：先砍掉正文前的四栏预览词表，再清理右栏里残留的预览块
+                k = find_body_start(page_lines)
+                page_lines = strip_preview(page_lines[k:] if k else page_lines)
+            plines.extend((n, ln) for ln in page_lines)
+        chunks = assign_orphans(segment_unit(plines, words), len(words))
+        by_idx = {}
+        for c in chunks:
+            if c["idx"] is not None:
+                by_idx.setdefault(c["idx"], []).append(c)
+        for i, r1e in enumerate(by_unit[key]):
+            cs = by_idx.get(i, [])
+            if len(cs) > 1:  # 同一个词被切了两段（多词性分条印）→ 合并
+                merged = {"idx": i, "how": cs[0]["how"],
+                          "lines": [ln for c in cs for ln in c["lines"]]}
+                cs = [merged]
+            chunk = cs[0] if cs else None
+            raw = "\n".join(ln for _, ln in chunk["lines"]) if chunk else ""
+            entries.append(assemble(r1e["word"], key[0], key[1], chunk, raw, words))
+        for i, w in enumerate(words):
+            if i not in by_idx:
+                unmatched.append({"word": w, "section": key[0], "unit": key[1],
+                                  "reason": "no_headword_found"})
+        for c in chunks:
+            if c["idx"] is None:
+                unmatched.append({"word": None, "section": key[0], "unit": key[1],
+                                  "reason": "orphan_block",
+                                  "head_line": c["lines"][0][1][:80],
+                                  "pdf_page": c["lines"][0][0]})
+    return entries, unmatched
 
 
-def trace(word: str, haystacks: list) -> bool:
-    target = letters_only(word)
-    if not target:
-        return False
-    return any(target in h for h in haystacks)
-
-
-# ---------------------------------------------------------------- 主流程
-
-def main(argv=None) -> int:
+def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ocr-dir", default="round2/ocr")
-    ap.add_argument("--units", default="round2/ocr/units.json")
-    ap.add_argument("--all-entries", default="all_entries_v2.json")
-    ap.add_argument("--out-dir", default="round2/data")
-    ap.add_argument("--limit-pages", type=int, default=0, help="调试：只解析页码 ≤N 的页")
-    ap.add_argument("--limit-units", type=int, default=0, help="调试：只解析前 N 个单元")
+    ap.add_argument("--units", action="store_true", help="只重建 units.json")
+    ap.add_argument("--limit-pages", type=int, default=None)
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--out-entries", default=str(DATA_DIR / "entries_r2.json"))
+    ap.add_argument("--out-unmatched", default=str(DATA_DIR / "unmatched.json"))
     args = ap.parse_args(argv)
 
     if args.self_test:
-        return self_test()
+        return run_self_test()
 
-    root = Path(".")
-    ocr_dir = root / args.ocr_dir
-    units = load_units(root / args.units)
-    all_entries = load_all_entries(root / args.all_entries)
-    pages = load_pages(ocr_dir)
-    if not pages:
-        print(f"[fatal] {ocr_dir} 下没有 page_*.txt", file=sys.stderr)
-        return 2
-    if args.limit_pages:
-        pages = {k: v for k, v in pages.items() if k <= args.limit_pages}
+    if args.units:
+        pages = load_pages()
+        units = build_units(read_entries(), pages)
+        UNITS_JSON.write_text(json.dumps(units, ensure_ascii=False, indent=2) + "\n",
+                              encoding="utf-8")
+        print(f"wrote {UNITS_JSON}")
+        return 0
 
-    by_unit = unit_word_lists(all_entries)
-    page_offset = infer_page_offset(units, all_entries)
-    meta_by_word = {e["word"]: e for e in all_entries}
-
-    stats = {"missing_in_ocr": [], "unmatched_candidates": [], "unit_gaps": [],
-             "pages_missing": [], "truncated_segments": 0, "available_units": []}
-    entries = []
-    units_done = 0
-
-    for section in ("必考词", "基础词"):
-        for u in units.get(section, []):
-            key = (section, u["unit"])
-            if key not in by_unit:
-                continue
-            if args.limit_units and units_done >= args.limit_units:
-                break
-            rng = [p for p in range(u["pdf_start"], u["pdf_end"] + 1) if p in pages]
-            if not rng:
-                continue
-            units_done += 1
-            stats["available_units"].append((section, u["unit"]))
-            if len(rng) < u["pdf_end"] - u["pdf_start"] + 1:
-                stats["pages_missing"].append(
-                    {"section": section, "unit": u["unit"],
-                     "missing": u["pdf_end"] - u["pdf_start"] + 1 - len(rng)})
-            expected = by_unit[key]
-            segs, leading = build_segments(
-                pages, section, u["unit"], expected, u["pdf_start"], u["pdf_end"], stats)
-
-            # 单元首页 = 单词表页：OCR 词序列 vs 一轮词表
-            seen = preview_page_words(pages.get(u["pdf_start"], []))
-            seen_set = {letters_only(x) for x in seen}
-            gaps = [w for w in expected
-                    if letters_only(w) not in seen_set
-                    and not any(similar(w, x) for x in seen)]
-            stats["unit_gaps"].append({
-                "section": section, "unit": u["unit"], "pdf_page": u["pdf_start"],
-                "expected": len(expected), "seen_heads": len(seen), "gaps": gaps,
-            })
-
-            if leading and entries:
-                entries[-1]["_tail_seg"] = entries[-1].get("_tail_seg", []) + leading
-
-            for word, seg, exact, ocr_head in segs:
-                parsed = parse_entry(seg)
-                parsed.update({"word": word, "section": section, "unit": u["unit"]})
-                parsed["_exact_head"] = exact
-                parsed["_ocr_head"] = ocr_head
-                entries.append(parsed)
-
-    # 跨单元的续文并回上一条
-    for e in entries:
-        tail = e.get("_tail_seg")
-        if not tail:
-            continue
-        tail_text = "\n".join(ln for _, ln in tail)
-        e["_raw"] += "\n" + tail_text
-        e["pdf_pages"] = sorted(set(e["pdf_pages"]) | {p for p, _ in tail})
-        for slot, text, _name, _g in split_marker_blocks(tail_text):
-            if slot == "def":
-                items = split_items(text)
-                if e["senses"]:
-                    e["senses"][-1]["items"].extend(items)
-                else:
-                    e["senses"].append({"pos": e["pos"], "items": items})
-                e["examples"].extend(extract_examples(items))
-            elif slot == "phrase":
-                e["phrases"].extend(parse_phrases(text))
-            elif slot == "examples":
-                e["examples"].extend(parse_example_block(text))
-            elif slot == "deriv":
-                e["deriv"].extend(parse_deriv(text))
-            elif slot == "syn":
-                e["syn"].extend(parse_syn(text))
-            elif slot == "ant":
-                e["ant"].extend(parse_ant(text))
-
-    # 校验 + 置信度
-    out_entries, raw_by_word = [], {}
-    for e in entries:
-        flags = []
-        raw_letters = letters_only(e["_raw"])
-        if not e["_exact_head"]:
-            flags.append("fuzzy_headword_match")
-        if not e["senses"]:
-            flags.append("no_senses")
-        elif not any(s["items"] for s in e["senses"]):
-            flags.append("empty_sense_items")
-        if not e["phonetic"]:
-            flags.append("no_phonetic")
-        if e["word"] not in by_unit.get((e["section"], e["unit"]), []):
-            flags.append("word_not_in_unit_list")
-        for field, tag in (("deriv", "hallucinated_deriv"),
-                           ("syn", "hallucinated_syn"),
-                           ("ant", "hallucinated_ant")):
-            bad = [x["word"] if isinstance(x, dict) else x for x in e[field]
-                   if not trace(x["word"] if isinstance(x, dict) else x, [raw_letters])]
-            if bad:
-                flags.append(tag)
-        if not e["mnemonic"]:
-            flags.append("no_mnemonic")
-        if e.get("_guessed_markers"):
-            flags.append("marker_name_garbled")
-        if e["_raw"].count("助记") + e["_raw"].count("记忆") > 1:
-            flags.append("possible_merge")
-        if not CJK_RE.search(e["_raw"]) and not e["phonetic"]:
-            flags.append("ocr_garbled")
-
-        meta = meta_by_word.get(e["word"], {})
-        mnemonic = e["mnemonic"] or meta.get("mnemonic") or None
-        conf = score_confidence({**e, "mnemonic": mnemonic}, flags, e["_exact_head"])
-        raw_by_word[e["word"]] = e["_raw"]
-        out_entries.append({
-            "word": e["word"],
-            "phonetic": e["phonetic"],
-            "pos": e["pos"],
-            "section": e["section"],
-            "unit": e["unit"],
-            "pdf_pages": e["pdf_pages"],
-            "mnemonic": mnemonic,
-            "senses": e["senses"],
-            "syn": e["syn"],
-            "ant": e["ant"],
-            "deriv": e["deriv"],
-            "phrases": e["phrases"],
-            "examples": e["examples"],
-            "notes": e["notes"],
-            "ocr_confidence": conf,
-            "flags": flags,
-        })
-
-    out_dir = root / args.out_dir
-    out_dir.mkdir(parents=True, exist_ok=True)
-    covered = {x["word"] for x in out_entries}
-
-    unmatched = []
-    for x in stats["missing_in_ocr"]:
-        if x["word"] in covered:
-            continue
-        e = meta_by_word.get(x["word"], {})
-        unmatched.append({
-            "word": x["word"], "section": x["section"], "unit": x["unit"],
-            "reason": "missing_in_ocr",
-            "one_round_meaning": (e.get("meaning") or "")[:60] or None,
-        })
-    for x in stats["unmatched_candidates"]:
-        unmatched.append({
-            "word": None, "ocr_token": x["token"], "page": x["page"],
-            "section": x["section"], "unit": x["unit"],
-            "reason": "candidate_not_in_unit_list",
-        })
-
+    entries, unmatched = parse_all(args.limit_pages)
     payload = {
         "meta": {
             "source": "2026 红宝书考研英语词汇",
             "pdf": "00-红宝书.pdf",
-            "pages_ocr": len(pages),
-            "generated": _dt.datetime.now().isoformat(timespec="seconds"),
-            "parser": "round2/tools/parse_entries.py",
+            "pages_ocr": len(load_pages()),
+            "generated": _dt.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
         },
-        "entries": out_entries,
+        "entries": entries,
     }
-    (out_dir / "entries_r2.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
-    (out_dir / "unmatched.json").write_text(json.dumps({
-        "generated": payload["meta"]["generated"],
-        "coverage": {"expected": len(all_entries), "covered": len(covered),
-                     "ratio": round(len(covered) / max(1, len(all_entries)), 4)},
-        "unmatched": unmatched,
-        "unit_gaps": stats["unit_gaps"],
-    }, ensure_ascii=False, indent=1), encoding="utf-8")
-
-    parsed_pages = set(pages)
-    on_pages = [e for e in all_entries if (e.get("page") or 0) + page_offset in parsed_pages]
-    payload["meta"]["page_offset"] = page_offset
-    payload["meta"]["words_on_parsed_pages"] = len(on_pages)
-    (out_dir / "parse_report.md").write_text(
-        render_report(payload, all_entries, stats, raw_by_word), encoding="utf-8")
-
-    print(f"entries={len(out_entries)} covered={len(covered)}/{len(all_entries)} "
-          f"unmatched={len(unmatched)} pages={len(pages)} → {out_dir}")
+    Path(args.out_entries).write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n",
+                                      encoding="utf-8")
+    Path(args.out_unmatched).write_text(json.dumps(unmatched, ensure_ascii=False, indent=1) + "\n",
+                                        encoding="utf-8")
+    print(f"entries={len(entries)} unmatched={len(unmatched)}")
     return 0
 
 
-# ---------------------------------------------------------------- 报告
+# ------------------------------------------------------------------ self-test
 
-FIELD_NAMES = [("senses", "senses（有释义组）"), ("deriv", "deriv"), ("syn", "syn"),
-               ("ant", "ant"), ("phrases", "phrases"), ("examples", "examples"),
-               ("mnemonic", "mnemonic"), ("phonetic", "phonetic"),
-               ("notes", "notes（扩展字段）")]
+def run_self_test():
+    KNOWN_WORDS.update(["reliable", "reliance", "unreliable", "relaxation"])
+    words = ["straight", "strain", "strategy", "reliable", "reliance"]
+    lines = [
+        (40, "straight streit"),
+        (40, "【词性】adj"),
+        (40, "【词义】①直的，笔直的：The streets were～and narrow.这些"),
+        (40, "街道笔直狭窄。"),
+        (40, "【词组】①straight away/off立刻，马上"),
+        (40, "②talk straight直言不讳③put things straight整顿局面"),
+        (40, "strainstreim"),
+        (40, "【助记】train（火车）前面放“s”，司机很strain（紧张）"),
+        (40, "【词性】v"),
+        (40, "【词义】①使紧张，尽力使用：～one'seyes瞪大眼晴看／，"),
+        (40, "one'svoice扯着噪门叫"),
+        (40, "【同义】①tension③injury"),
+        (40, "【反义】relaxation n。松驰，缓和"),
+        (40, "【派生】strained［streind】adj.紧张的；勉强的，不自然的"),
+        (40, "strategy[straetod3i] n."),
+        (40, "reliable[rr'laiobl] adj."),
+        (40, "[词义]可靠的:It's not ~ to judge a man only by his clothes and"),
+        (40, "appearance。单凭衣着和容貌来判断一个人是不可靠的。"),
+        (40, "relanceTrilarens"),
+        (40, "【词义】（on）依靠，依赖（u）：Long terms of ~ on sleeping pills"),
+        (40, "is dangerous。长期依赖安眠药是危险的。"),
+    ]
+    chunks = segment_unit(lines, words)
+    got = [words[c["idx"]] for c in chunks if c["idx"] is not None]
+    assert got[:3] == ["straight", "strain", "strategy"], got
+    assert "reliable" in got and "reliance" in got, got
+    def raw_of(c):
+        return "\n".join(ln for _, ln in c["lines"])
 
-
-def render_report(payload: dict, all_entries: list, stats: dict, raw_by_word: dict) -> str:
-    E = payload["entries"]
-    n = len(E)
-    total = len(all_entries)
-    L = []
-    A = L.append
-    A("# 二轮词条解析质量报告")
-    A("")
-    A(f"- 生成时间：{payload['meta']['generated']}")
-    A(f"- OCR 页数：{payload['meta']['pages_ocr']}")
-    onp = payload["meta"].get("words_on_parsed_pages")
-    A(f"- 解析出的词条数：**{n}**")
-    A(f"- 一轮词表 {total} 词，全书覆盖率 **{n / max(1, total):.2%}**（{n}/{total}）")
-    if onp:
-        A(f"- **本次 OCR 覆盖页上**的一轮词数 {onp}，页内覆盖率 **{n / onp:.2%}**（{n}/{onp}）"
-          f" —— 这是衡量解析器本身的关键数字")
-    A("")
-    if stats.get("pages_missing"):
-        miss = sum(x["missing"] for x in stats["pages_missing"])
-        A(f"- ⚠️ 有 {len(stats['pages_missing'])} 个单元页码不完整，共缺 {miss} 页，"
-          f"这些页上的词条不可能出现")
-    A("")
-
-    A("## 1. 字段填充率")
-    A("")
-    A("| 字段 | 非空条目 | 填充率 |")
-    A("|------|---------:|-------:|")
-    for key, label in FIELD_NAMES:
-        filled = sum(1 for e in E if e.get(key))
-        A(f"| {label} | {filled} | {filled / max(1, n):.1%} |")
-    items = sum(len(s["items"]) for e in E for s in e["senses"])
-    A("")
-    A(f"释义条目（senses.items 总数）：{items}，平均每词 {items / max(1, n):.2f} 条；"
-      f"平均每词 {sum(len(e['phrases']) for e in E) / max(1, n):.2f} 个词组、"
-      f"{sum(len(e['deriv']) for e in E) / max(1, n):.2f} 个派生、"
-      f"{sum(len(e['examples']) for e in E) / max(1, n):.2f} 条例句。")
-    A("")
-
-    A("## 2. 按 section + unit 的分布")
-    A("")
-    A("| section | unit | 词条数 | 一轮应有 | 平均置信度 |")
-    A("|---------|-----:|-------:|---------:|-----------:|")
-    expect_cnt = {}
-    for e in all_entries:
-        expect_cnt[(e["section"], e["unit"])] = expect_cnt.get((e["section"], e["unit"]), 0) + 1
-    buckets = {}
-    for e in E:
-        buckets.setdefault((e["section"], e["unit"]), []).append(e["ocr_confidence"])
-    for (sec, unit), confs in sorted(buckets.items(),
-                                     key=lambda kv: (kv[0][0] != "必考词", kv[0][1])):
-        A(f"| {sec} | {unit} | {len(confs)} | {expect_cnt.get((sec, unit), 0)} | "
-          f"{sum(confs) / len(confs):.2f} |")
-    avail = stats.get("available_units") or list(expect_cnt)
-    empty = [f"{sec} Unit {unit}" for sec, unit in avail if (sec, unit) not in buckets]
-    A("")
-    if empty:
-        A("**完全没有解析结果的单元**：" + "；".join(empty))
-        A("")
-
-    A("## 3. flags 统计")
-    A("")
-    cnt = {}
-    for e in E:
-        for f in e["flags"]:
-            cnt[f] = cnt.get(f, 0) + 1
-    if cnt:
-        A("| flag | 条目数 | 含义 |")
-        A("|------|-------:|------|")
-        meaning = {
-            "fuzzy_headword_match": "headword 与一轮词形不完全一致（OCR 错字）",
-            "no_senses": "没切出任何释义",
-            "empty_sense_items": "有词性但释义条目为空",
-            "no_phonetic": "没有音标",
-            "no_mnemonic": "书上无【助记】且一轮也没有",
-            "marker_name_garbled": "有标记名没认出来，靠内容形状猜的槽位",
-            "hallucinated_deriv": "派生词在 OCR 原文里回溯不到",
-            "hallucinated_syn": "同义词在 OCR 原文里回溯不到",
-            "hallucinated_ant": "反义词在 OCR 原文里回溯不到",
-            "ocr_garbled": "整条既无中文也无音标",
-            "word_not_in_unit_list": "词不在该单元词表里",
-            "possible_merge": "同一段里出现多个【助记】，多半把没认出来的相邻词条吞了",
-        }
-        for k, v in sorted(cnt.items(), key=lambda kv: -kv[1]):
-            A(f"| `{k}` | {v} | {meaning.get(k, '')} |")
-    else:
-        A("无 flag。")
-    A("")
-
-    A("## 4. 与一轮词表的对账")
-    A("")
-    A(f"- 缺失词（该单元页内有、但没切出来/没对齐上）：{len(stats['missing_in_ocr'])} 个")
-    A(f"- 未命中词表的候选 headword（误检）：{len(stats['unmatched_candidates'])} 个")
-    A(f"- 因「下一个词没认出来」被截断的段：{stats.get('truncated_segments', 0)} 处")
-    A("")
-    gaps_nonempty = [g for g in stats["unit_gaps"] if g["gaps"]]
-    A(f"### 4.1 单元首页（单词表页）OCR 词序列 vs 一轮词表：{len(gaps_nonempty)} 个单元有缺口")
-    A("")
-    if gaps_nonempty:
-        A("| section | unit | 首页 | 应有 | OCR 见到 | 缺口数 | 缺口示例 |")
-        A("|---------|-----:|-----:|-----:|---------:|-------:|----------|")
-        for g in gaps_nonempty[:45]:
-            gp = ", ".join(g["gaps"][:10]) + (" …" if len(g["gaps"]) > 10 else "")
-            A(f"| {g['section']} | {g['unit']} | {g['pdf_page']} | {g['expected']} "
-              f"| {g['seen_heads']} | {len(g['gaps'])} | {gp} |")
-        A("")
-    miss = stats["missing_in_ocr"]
-    if miss:
-        A("### 4.2 缺失词（前 80 个）")
-        A("")
-        A("、".join(f"{x['section'][:2]}{x['unit']}-{x['word']}" for x in miss[:80]))
-        A("")
-
-    A("## 5. 置信度最低的 20 个词")
-    A("")
-    A("| # | word | section/unit | 置信度 | flags | OCR 认成 |")
-    A("|--:|------|--------------|-------:|-------|----------|")
-    low = sorted(E, key=lambda x: (x["ocr_confidence"], x["word"]))[:20]
-    for i, e in enumerate(low, 1):
-        head = ""
-        for ln in (raw_by_word.get(e["word"], "").splitlines() or [""])[:1]:
-            head = ln.strip()[:34]
-        A(f"| {i} | `{e['word']}` | {e['section']} {e['unit']} | {e['ocr_confidence']} "
-          f"| {', '.join(e['flags']) or '-'} | {head} |")
-    A("")
-
-    A("## 6. 人工核对：OCR 原文 vs 解析结果")
-    A("")
-    A(sample_section(E, raw_by_word))
-    A("")
-    A("## 7. 未建模内容与兜底建议")
-    A("")
-    notes_cnt = sum(1 for e in E if e.get("notes"))
-    A(f"- 书上确实存在、但 SCHEMA 没有对应字段的块（辨析/用法/联想/扩展/考点/典型考题/"
-      f"试题分析）被塞进 `notes`（**扩展字段，需 SCHEMA 追认**）：{notes_cnt} 条。")
-    A("- 建议再补：`examples`（正则抠的，长例句会被截断）、`phrases.zh`、"
-      "以及本报告第 5 节的低置信度词条。")
-    A("- 建议不上面：`notes`（辨析/考题）体量大、依赖排版、OCR 最不稳；"
-      "`syn` 里的编号（①②）价值低。")
-    A("")
-    return "\n".join(L)
-
-
-def sample_section(E: list, raw_by_word: dict) -> str:
-    """挑 5 个「派生 + 词组 + 例句」俱全的词并排展示 OCR 原文与解析结果。"""
-    pool = [e for e in E if e["deriv"] and e["phrases"] and e["examples"] and e["senses"]]
-    if len(pool) < 5:
-        pool = sorted(E, key=lambda e: -(len(e["deriv"]) + len(e["phrases"])
-                                         + len(e["examples"]) + len(e["senses"])))[:5]
-    picks = sorted(pool, key=lambda e: -(len(e["deriv"]) + len(e["phrases"]) + len(e["examples"])))[:5]
-    if not picks:
-        return "（没有可用的样例条目）"
-    out = []
-    for e in picks:
-        out.append(f"### `{e['word']}`（{e['section']} Unit {e['unit']}，"
-                   f"p.{','.join(map(str, e['pdf_pages']))}，conf={e['ocr_confidence']}）")
-        out.append("")
-        raw = raw_by_word.get(e["word"], "")
-        raw_lines = [ln for ln in raw.splitlines() if ln.strip()][:14]
-        out.append("OCR 原文（前 14 行）：")
-        out.append("```text")
-        out.extend(raw_lines)
-        out.append("```")
-        out.append("解析结果：")
-        out.append("```json")
-        sub = {k: e[k] for k in ("phonetic", "pos", "senses", "deriv", "syn", "ant",
-                                 "phrases", "examples")}
-        out.append(json.dumps(sub, ensure_ascii=False, indent=1)[:1800])
-        out.append("```")
-        out.append(f"flags：{', '.join(e['flags']) or '（无）'}")
-        out.append("")
-    return "\n".join(out)
-
-
-# ---------------------------------------------------------------- 自测
-
-SAMPLE_PAGE_ONE = """\
-remain                     [rɪ'meɪn] v.
-【助记】re(again 再,又)+main(=man 停留)→余留,留待
-【词义】① 剩下,余留: In the late autumn, few apples ~ ed on the tree. 晚秋树上没剩下几个苹果。
-      ② 留待,尚需: This ~ s to be proved. 这尚待证实。
-      ③ 仍然是,依旧是: to ~ silent 保持沉默 / The affair ~ ed a complete mystery. 这事仍然是个谜。
-【词组】it remains to be seen 情况仍未明,要看怎样发展
-【真题例句】There are many different types of automatic door, with each relying on specific signals to tell them when to open.
-"""
-
-SAMPLE_PAGE_TWO = """\
-strain                     [streɪn]
-【助记】train(火车)前面放 "s",司机很strain(紧张)
-【词性】❶ v.
-【词义】① 使紧张,尽力使用: ~ one's eyes 瞪大眼睛看
-【词性】❷ n.
-【词义】① 拉力,张力: Can nylon ropes take more ~ than the old kind rope?
-【同义】① tension ③ injury
-【反义】relaxation n. 松弛,缓和
-【派生】strained ['streɪnd] adj. 紧张的;勉强的,不自然的
-【词组】be(或become,fall) prey to sth. 被……捕食
-"""
-
-# 真实 tesseract 退化形态（取自 PDF 第 10/11 页的实际输出，未做人工纠错）
-SAMPLE_PAGE_DEGRADED = """\
-remedy |                             | !remadi |
-(JO nv.
-【词义]@ 治疗,治疗法,药品:  This doctor often uses herbal
-remedies. ix K i AH eH
-Q 补救{ 办法) , 2 iE ( Pri#) We only ~ is to appeal to
-law. 你的唯一补救办法是诉诸法律。
-[ 词性】全 w.
-【词义】@ 医治,治疗:4spirin may ~ headache. 阿斯匹林可
-治头痛。
-【 词组 ] remedy for 对……的治疗 ,补救
-【 JRE ) remedial [ r1' mizdial ] adj. 治疗的,矫了
-"""
-
-
-def self_test() -> int:
-    fails = []
-
-    def chk(cond, msg):
-        if not cond:
-            fails.append(msg)
-
-    part1 = SAMPLE_PAGE_ONE.rstrip().splitlines()
-    e = parse_entry([(10, ln) for ln in part1])
-    chk(e["phonetic"] == "rɪ'meɪn", f"phonetic: {e['phonetic']}")
-    chk(e["pos"] == "v.", f"pos: {e['pos']}")
-    chk(len(e["senses"]) == 1, f"senses groups: {len(e['senses'])}")
-    chk(len(e["senses"][0]["items"]) == 3, f"items: {e['senses'][0]['items']}")
-    chk(e["phrases"] and e["phrases"][0]["en"] == "it remains to be seen",
-        f"phrases: {e['phrases']}")
-    chk(e["mnemonic"] and e["mnemonic"].startswith("re(again"), f"mnemonic: {e['mnemonic']}")
-
-    e2 = parse_entry([(12, ln) for ln in SAMPLE_PAGE_TWO.splitlines()])
-    chk(len(e2["senses"]) == 2, f"two pos groups: {e2['senses']}")
-    chk([s["pos"] for s in e2["senses"]] == ["v.", "n."],
-        f"group pos: {[s['pos'] for s in e2['senses']]}")
-    chk(e2["syn"] == ["tension", "injury"], f"syn: {e2['syn']}")
-    chk(e2["ant"] and e2["ant"][0]["word"] == "relaxation"
-        and e2["ant"][0]["pos"] == "n." and "松弛" in (e2["ant"][0]["meaning"] or ""),
-        f"ant: {e2['ant']}")
-    chk(e2["deriv"] and e2["deriv"][0]["word"] == "strained"
-        and e2["deriv"][0]["phonetic"].strip("'’") == "streɪnd"
-        and e2["deriv"][0]["pos"] == "adj.", f"deriv: {e2['deriv']}")
-    chk(len(e2["phrases"]) == 1
-        and e2["phrases"][0]["en"].startswith("be(或become,fall) prey to sth."),
-        f"phrase en/zh split: {e2['phrases']}")
-
-    # 退化形态：`(JO nv.` / `[ 词性】全 w.` / `【 JRE )`（派生名认不出来）
-    e3 = parse_entry([(13, "remedy")] + [(13, ln) for ln in SAMPLE_PAGE_DEGRADED.splitlines()])
-    chk(e3["senses"], f"degraded senses: {e3['senses']}")
-    chk(len(e3["senses"]) == 2, f"degraded sense groups: {e3['senses']}")
-    chk(any(s["pos"] == "v." for s in e3["senses"]), f"degraded v. pos: {e3['senses']}")
-    chk(e3["phrases"], f"degraded phrase: {e3['phrases']}")
-    chk(e3["deriv"] and e3["deriv"][0]["word"] == "remedial", f"degraded deriv: {e3['deriv']}")
-
-    # 切词：OCR 把 strain 认成 strairn，且正文里混入误检候选
-    pages = {1: ["memo       [ˈmeməʊ] n.",
-                 "【词义】① 备忘录: a ~ on the desk 桌上的备忘录"],
-             2: ["kitchen. The dish is on the table.",
-                 "strairn    [streɪn] v.",
-                 "【词义】① 使紧张: ~ one's eyes 瞪大眼睛看"]}
-    stats = {"missing_in_ocr": [], "unmatched_candidates": [], "unit_gaps": [],
-             "pages_missing": [], "truncated_segments": 0, "available_units": []}
-    segs, _leading = build_segments(pages, "必考词", 1, ["memo", "strain"], 1, 2, stats)
-    chk([s[0] for s in segs] == ["memo", "strain"],
-        f"segment words: {[s[0] for s in segs]}")
-    chk(segs and segs[-1][2] is False, "fuzzy head should be marked non-exact")
-
-    if fails:
-        print("SELF-TEST FAILED:")
-        for f in fails:
-            print("  -", f)
-        return 1
-    print(f"self-test ok: {16 + 2} checks")
+    strain = assemble("strain", "必考词", 1, chunks[1], raw_of(chunks[1]), words)
+    assert strain["senses"] and strain["senses"][0]["items"], strain["senses"]
+    assert strain["senses"][0]["items"][0].startswith("①使紧张"), strain["senses"]
+    assert strain["syn"] == ["tension", "injury"], strain["syn"]
+    assert strain["ant"][0]["word"] == "relaxation", strain["ant"]
+    assert strain["deriv"][0]["word"] == "strained", strain["deriv"]
+    assert strain["deriv"][0]["phonetic"] == "streind", strain["deriv"]
+    straight = assemble("straight", "必考词", 1, chunks[0], raw_of(chunks[0]), words)
+    assert straight["phrases"][0]["en"].startswith("straight away"), straight["phrases"]
+    assert straight["senses"][0]["items"][0].startswith("①直的"), straight["senses"]
+    assert "hallucinated_deriv" not in strain["flags"]
+    rel = assemble("reliance", "必考词", 1, chunks[4], raw_of(chunks[4]), words)
+    assert rel["flags"] and "fuzzy_headword" in rel["flags"], rel["flags"]
+    print("self-test OK")
     return 0
 
 

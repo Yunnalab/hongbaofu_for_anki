@@ -1,0 +1,286 @@
+{
+  "必考词": [
+    {
+      "unit": 1,
+      "pdf_start": 9,
+      "pdf_end": 15
+    },
+    {
+      "unit": 2,
+      "pdf_start": 16,
+      "pdf_end": 22
+    },
+    {
+      "unit": 3,
+      "pdf_start": 23,
+      "pdf_end": 29
+    },
+    {
+      "unit": 4,
+      "pdf_start": 30,
+      "pdf_end": 36
+    },
+    {
+      "unit": 5,
+      "pdf_start": 37,
+      "pdf_end": 43
+    },
+    {
+      "unit": 6,
+      "pdf_start": 44,
+      "pdf_end": 50
+    },
+    {
+      "unit": 7,
+      "pdf_start": 51,
+      "pdf_end": 57
+    },
+    {
+      "unit": 8,
+      "pdf_start": 58,
+      "pdf_end": 64
+    },
+    {
+      "unit": 9,
+      "pdf_start": 65,
+      "pdf_end": 72
+    },
+    {
+      "unit": 10,
+      "pdf_start": 73,
+      "pdf_end": 80
+    },
+    {
+      "unit": 11,
+      "pdf_start": 81,
+      "pdf_end": 88
+    },
+    {
+      "unit": 12,
+      "pdf_start": 89,
+      "pdf_end": 96
+    },
+    {
+      "unit": 13,
+      "pdf_start": 97,
+      "pdf_end": 104
+    },
+    {
+      "unit": 14,
+      "pdf_start": 105,
+      "pdf_end": 112
+    },
+    {
+      "unit": 15,
+      "pdf_start": 113,
+      "pdf_end": 119
+    },
+    {
+      "unit": 16,
+      "pdf_start": 120,
+      "pdf_end": 127
+    },
+    {
+      "unit": 17,
+      "pdf_start": 128,
+      "pdf_end": 135
+    },
+    {
+      "unit": 18,
+      "pdf_start": 136,
+      "pdf_end": 142
+    },
+    {
+      "unit": 19,
+      "pdf_start": 143,
+      "pdf_end": 150
+    },
+    {
+      "unit": 20,
+      "pdf_start": 151,
+      "pdf_end": 158
+    },
+    {
+      "unit": 21,
+      "pdf_start": 159,
+      "pdf_end": 165
+    },
+    {
+      "unit": 22,
+      "pdf_start": 166,
+      "pdf_end": 172
+    },
+    {
+      "unit": 23,
+      "pdf_start": 173,
+      "pdf_end": 179
+    },
+    {
+      "unit": 24,
+      "pdf_start": 180,
+      "pdf_end": 185
+    },
+    {
+      "unit": 25,
+      "pdf_start": 186,
+      "pdf_end": 192
+    },
+    {
+      "unit": 26,
+      "pdf_start": 193,
+      "pdf_end": 199
+    }
+  ],
+  "基础词": [
+    {
+      "unit": 1,
+      "pdf_start": 200,
+      "pdf_end": 206
+    },
+    {
+      "unit": 2,
+      "pdf_start": 207,
+      "pdf_end": 212
+    },
+    {
+      "unit": 3,
+      "pdf_start": 213,
+      "pdf_end": 219
+    },
+    {
+      "unit": 4,
+      "pdf_start": 220,
+      "pdf_end": 226
+    },
+    {
+      "unit": 5,
+      "pdf_start": 227,
+      "pdf_end": 233
+    },
+    {
+      "unit": 6,
+      "pdf_start": 234,
+      "pdf_end": 239
+    },
+    {
+      "unit": 7,
+      "pdf_start": 240,
+      "pdf_end": 246
+    },
+    {
+      "unit": 8,
+      "pdf_start": 247,
+      "pdf_end": 253
+    },
+    {
+      "unit": 9,
+      "pdf_start": 254,
+      "pdf_end": 260
+    },
+    {
+      "unit": 10,
+      "pdf_start": 261,
+      "pdf_end": 267
+    },
+    {
+      "unit": 11,
+      "pdf_start": 268,
+      "pdf_end": 274
+    },
+    {
+      "unit": 12,
+      "pdf_start": 275,
+      "pdf_end": 281
+    },
+    {
+      "unit": 13,
+      "pdf_start": 282,
+      "pdf_end": 288
+    },
+    {
+      "unit": 14,
+      "pdf_start": 289,
+      "pdf_end": 295
+    },
+    {
+      "unit": 15,
+      "pdf_start": 296,
+      "pdf_end": 301
+    },
+    {
+      "unit": 16,
+      "pdf_start": 302,
+      "pdf_end": 308
+    },
+    {
+      "unit": 17,
+      "pdf_start": 309,
+      "pdf_end": 315
+    },
+    {
+      "unit": 18,
+      "pdf_start": 316,
+      "pdf_end": 322
+    },
+    {
+      "unit": 19,
+      "pdf_start": 323,
+      "pdf_end": 329
+    },
+    {
+      "unit": 20,
+      "pdf_start": 330,
+      "pdf_end": 335
+    },
+    {
+      "unit": 21,
+      "pdf_start": 336,
+      "pdf_end": 342
+    },
+    {
+      "unit": 22,
+      "pdf_start": 343,
+      "pdf_end": 349
+    },
+    {
+      "unit": 23,
+      "pdf_start": 350,
+      "pdf_end": 356
+    },
+    {
+      "unit": 24,
+      "pdf_start": 357,
+      "pdf_end": 363
+    },
+    {
+      "unit": 25,
+      "pdf_start": 364,
+      "pdf_end": 370
+    },
+    {
+      "unit": 26,
+      "pdf_start": 371,
+      "pdf_end": 377
+    },
+    {
+      "unit": 27,
+      "pdf_start": 378,
+      "pdf_end": 384
+    },
+    {
+      "unit": 28,
+      "pdf_start": 385,
+      "pdf_end": 391
+    },
+    {
+      "unit": 29,
+      "pdf_start": 392,
+      "pdf_end": 398
+    },
+    {
+      "unit": 30,
+      "pdf_start": 399,
+      "pdf_end": 405
+    }
+  ]
+}
