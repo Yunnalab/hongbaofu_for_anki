@@ -1,1 +1,9 @@
 backups/
+
+# 二轮：OCR 中间产物与生成物不入库
+round2/ocr/page_*.txt
+round2/ocr/*.err
+round2/data/entries_r2.json
+round2/data/unmatched.json
+round2/*.apkg
+__pycache__/

@@ -254,14 +254,27 @@ def render_meaning(entry: dict, r1: dict | None) -> str:
 
 
 def resolve_pos(entry: dict, r1: dict | None, meaning: str) -> str:
-    for candidate in (entry.get("pos"), (r1 or {}).get("pos")):
-        if candidate and inflect.parse_pos(candidate):
-            return candidate.strip()
+    """合并所有来源的词性（红宝书一个词常兼 v./n.），变形按并集算。"""
+    found: list[str] = []
+
+    def add(value) -> None:
+        for token in inflect.parse_pos(value):
+            if token not in found:
+                found.append(token)
+
+    add(entry.get("pos"))
+    add((r1 or {}).get("pos"))
     for sense in entry.get("senses") or []:
-        if inflect.parse_pos(sense.get("pos")):
-            return sense["pos"].strip()
-    guessed = inflect.guess_pos(entry.get("word", ""), meaning)
-    return f"{guessed}." if guessed else ""
+        add(sense.get("pos"))
+    if not found:
+        add(inflect.guess_pos(entry.get("word", ""), meaning))
+    else:
+        # 释义正文里的词性标签（如 `v. 使紧张…… n. 拉力`）补进来
+        for tag in re.findall(r"(?:^|[\s；;，,])(adj|adv|vt|vi|v|n)\.", meaning or ""):
+            add(tag)
+    order = {p: i for i, p in enumerate(("v", "n", "adj", "adv"))}
+    found.sort(key=lambda p: order.get(p, 9))
+    return "/".join(f"{p}." for p in found)
 
 
 FORM_LABELS = {
@@ -354,10 +367,19 @@ def render_phrases(entry: dict) -> str:
     return "".join(out)
 
 
+def en_punct(text) -> str:
+    """OCR 把中文句读混进英文例句（`it will break。`），统一成半角。"""
+    if not text:
+        return text
+    for zh, en_ch in {"。": ".", "，": ",", "；": ";", "？": "?", "！": "!", "：": ":"}.items():
+        text = text.replace(zh, en_ch)
+    return text
+
+
 def render_examples(entry: dict, word: str, pos: str) -> str:
     out = []
     for ex in entry.get("examples") or []:
-        en = expand_tilde(esc_plain(ex.get("en")), word, pos)
+        en = expand_tilde(esc_plain(en_punct(ex.get("en"))), word, pos)
         zh = esc(ex.get("zh"))
         if not en:
             continue
@@ -394,7 +416,7 @@ def make_cloze(entry: dict, word: str, pos: str) -> tuple[str, str]:
         re.IGNORECASE,
     )
     for ex in entry.get("examples") or []:
-        en = expand_tilde(esc_plain(ex.get("en")), word, pos)
+        en = expand_tilde(esc_plain(en_punct(ex.get("en"))), word, pos)
         zh = esc_plain(ex.get("zh"))
         if not en or not zh:
             continue
