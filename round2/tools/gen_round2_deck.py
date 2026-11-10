@@ -97,6 +97,7 @@ section h3 {
 .formask {
   font-size: 19px; color: #2b2b2b; margin-top: 14px; letter-spacing: .5px;
 }
+.phrase-zh-ask { font-size: 20px; line-height: 1.6; margin: 10px 0; }
 .phrase-ask { font-size: 22px; line-height: 1.9; margin-bottom: 10px; }
 .phrase-ask .en { color: #1b1b1b; }
 .phrase-ask .zh { color: #777; font-size: 16px; }
@@ -128,17 +129,19 @@ FIELD_NAMES = [
     "Word", "Phonetic", "Pos", "Meaning", "Forms", "Derivatives", "SynAnt",
     "Phrases", "Examples", "Mnemonic", "Meta", "Cloze", "ClozeZh",
     # ↓ 二轮「多向提问」新增的题面字段
-    "ZhAsk", "FormAsk", "PhraseAsk", "DerivAsk",
+    "ZhAsk", "FormAsk", "PhraseAsk", "DerivAsk", "PhraseZhAsk",
 ]
 I_WORD, I_CLOZE = 0, FIELD_NAMES.index("Cloze")
 I_ZH_ASK = FIELD_NAMES.index("ZhAsk")
 I_FORM_ASK = FIELD_NAMES.index("FormAsk")
 I_PHRASE_ASK = FIELD_NAMES.index("PhraseAsk")
+I_PHRASE_ZH = FIELD_NAMES.index("PhraseZhAsk")
 I_DERIV_ASK = FIELD_NAMES.index("DerivAsk")
 
 # 模板档位：键 -> 显示名。ord 由上表的先后决定；①②③ 保持在最前面，
 # 免得已经导入过牌组的人因为 ord 变动而丢掉旧卡。
-TEMPLATE_ORDER = ("card", "extra", "cloze", "chinese", "forms", "phrase", "deriv")
+TEMPLATE_ORDER = ("card", "extra", "cloze", "chinese", "forms", "phrase", "deriv",
+                  "phrasezh")
 TEMPLATE_LABELS = {
     "card": "①词义卡",
     "extra": "②变形派生卡",
@@ -147,8 +150,9 @@ TEMPLATE_LABELS = {
     "forms": "⑤变形默写",
     "phrase": "⑥短语填空",
     "deriv": "⑦派生反推",
+    "phrasezh": "⑧搭配默写",
 }
-DEFAULT_TEMPLATES = "chinese,forms,phrase,cloze"
+DEFAULT_TEMPLATES = "chinese,forms,phrase,phrasezh,cloze"
 
 # 背面常用区块，多个模板复用（空字段不出现空标题）
 SEC_MEANING = '  {{#Meaning}}<section><h3>释义</h3><div class="meaning">{{Meaning}}</div></section>{{/Meaning}}\n'
@@ -278,6 +282,22 @@ def _template_specs() -> dict[str, dict]:
 {{/DerivAsk}}
 """,
         "afmt": _back(HEAD_WORD_SMALL, SEC_DERIV, SEC_MEANING, SEC_META),
+    }
+
+    # ⑧ 搭配默写：给中文（+ 目标词），自己写出固定搭配
+    specs["phrasezh"] = {
+        "name": TEMPLATE_LABELS["phrasezh"],
+        "qfmt": """
+{{#PhraseZhAsk}}
+<div class="front">
+  <div class="word">{{Word}}</div>
+  {{#Pos}}<div class="pos">{{Pos}}</div>{{/Pos}}
+  {{PhraseZhAsk}}
+  <div class="prompt">↑ 写出对应的固定搭配</div>
+</div>
+{{/PhraseZhAsk}}
+""",
+        "afmt": _back(HEAD_WORD_SMALL, SEC_PHRASES, SEC_DERIV, SEC_EXAMPLES, SEC_META),
     }
 
     return specs
@@ -693,6 +713,27 @@ def render_phrase_ask(entry: dict, word: str, pos: str) -> str:
     return "".join(out)
 
 
+def render_phrase_zh_ask(entry: dict, word: str, pos: str) -> str:
+    """⑧ 的题面：只给中文，让背的人自己写出搭配。
+
+    中文提示里若出现目标词（极少），跳过该条；正面不出现任何英文搭配。
+    """
+    surfaces = candidate_surfaces(word, pos)
+    pattern = surface_re(surfaces) if surfaces else None
+    out = []
+    for p in entry.get("phrases") or []:
+        zh = zh_hint(p.get("zh"))
+        en = expand_tilde(esc_plain(p.get("en")), word, pos)
+        if not zh or not en:
+            continue
+        if pattern and pattern.search(zh):
+            continue
+        out.append(f'<div class="phrase-zh-ask">{esc(zh)}</div>')
+        if len(out) >= MAX_PHRASE_ASKS:
+            break
+    return "".join(out)
+
+
 DERIV_WORD_RE = re.compile(r"[a-z]{4,20}")
 DERIV_SUFFIXES = (
     "tion", "sion", "ment", "ness", "ity", "ance", "ence", "ive", "ous", "ful",
@@ -785,11 +826,12 @@ def build_note(entry: dict, r1_index: dict[str, dict], model: genanki.Model) -> 
     form_ask = render_form_ask(word, pos) if pos else ""
     phrase_ask = render_phrase_ask(entry, word, pos)
     deriv_ask = render_deriv_ask(entry, word, pos)
+    phrase_zh_ask = render_phrase_zh_ask(entry, word, pos)
 
     fields = [
         esc(word), esc(phonetic), esc(pos), meaning, forms, deriv, syn_ant,
         phrases, examples, mnemonic, meta, cloze, cloze_zh,
-        zh_ask, form_ask, phrase_ask, deriv_ask,
+        zh_ask, form_ask, phrase_ask, deriv_ask, phrase_zh_ask,
     ]
     tags = ["红宝书二轮"]
     if entry.get("section"):
@@ -887,6 +929,7 @@ def main() -> None:
     # 「有料才出」：题面字段为空的 note 不会出这张卡
     gates = {"chinese": I_ZH_ASK, "forms": I_FORM_ASK,
              "phrase": I_PHRASE_ASK, "deriv": I_DERIV_ASK,
+             "phrasezh": I_PHRASE_ZH,
              "cloze": I_CLOZE}
     print(f"输出: {out_path}")
     print(f"note: {placed}  跳过(无 section/unit): {skipped}  子牌组: {len(decks)}")

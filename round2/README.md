@@ -16,10 +16,10 @@ round2/红宝书二轮_全量.apkg
 
 | 牌组 | 卡片数 | 说明 |
 |---|---|---|
-| 默认（④⑤⑥③） | 4292 notes / **8703 cards** | 只出反向题，和一轮不重复 |
+| 默认（③④⑤⑥⑧） | 4292 notes / **9754 cards** | 只出反向题，和一轮不重复 |
 | `--all` | 4292 notes / **17951 cards** | 再加 ①②（与一轮重复）和 ⑦ 派生反推 |
 
-七个模板的分工（**默认只出 ③④⑤⑥**，正面绝不出现答案）：
+八个模板的分工（**默认只出 ③④⑤⑥⑧**，正面绝不出现答案）：
 
 | 模板 | 正面 | 背面 | 默认 |
 |---|---|---|---|
@@ -30,8 +30,13 @@ round2/红宝书二轮_全量.apkg
 | ⑤变形默写 | 单词 + 词性 +「写出变形：过去式 · 过去分词 · 现在分词」 | 变形（不规则标 ✱）+ 例句 + 词组 | ✓ |
 | ⑥短语填空 | 固定搭配里挖掉本词（`in ＿＿ with`）+ 中文 | 单词 + 词组全列表 + 例句 | ✓ |
 | ⑦派生反推 | 派生词 + 词性 + 中文（`strained adj. 紧张的`）+「↑ 它的母词是？」 | 单词 + 派生全列表 + 释义 | 需 `--with-deriv` / `--all` |
+| ⑧搭配默写 | 单词 + 词性 + **只有中文**（`处理问题，对付困境`）+「↑ 写出对应的固定搭配」 | 单词 + 词组全列表 + 派生 + 例句 | ✓ |
 
-命中数（2026-11-10 版，`--all`）：④ 3340 / ⑤ 2642 / ⑥ 989 / ⑦ 664（③ 1732）。
+命中数（2026-11-10 版）：③ 1732 / ④ 3340 / ⑤ 2642 / ⑥ 989 / ⑧ 1051（`--all` 时另有 ① 4292 / ② 4292 / ⑦ 664）。
+
+**词组/搭配的覆盖上限就是书本身**：全书【词组】共 2058 条，只分布在 1052 个词条上（24.5%），
+其余 3240 词书上没列词组——所以 ⑥⑧ 天然只覆盖这 1052 词。想放宽只能从例句里抠「动词+介词」，
+噪声大，暂未做。
 **有料才出**：题面字段为空就不出这张卡（qfmt 整体包在 `{{#字段}}` 里，靠 Anki 的模板 req 生效），
 所以 902 个没有 `senses` 的词不出 ④，只有单一变形的词不出 ⑤。
 
@@ -40,7 +45,7 @@ round2/红宝书二轮_全量.apkg
 uv run --with genanki python3 round2/tools/gen_round2_deck.py \
     --data round2/data/entries_r2.json --out round2/红宝书二轮_全量.apkg
 
-# 挑模板：-t 可选 card/extra/cloze/chinese/forms/phrase/deriv
+# 挑模板：-t 可选 card/extra/cloze/chinese/forms/phrase/deriv/phrasezh
 uv run --with genanki python3 round2/tools/gen_round2_deck.py --data round2/data/entries_r2.json \
     --out /tmp/r2.apkg -t chinese,forms,phrase,cloze --with-deriv   # 默认 + ⑦
 uv run --with genanki python3 round2/tools/gen_round2_deck.py --data round2/data/entries_r2.json \
