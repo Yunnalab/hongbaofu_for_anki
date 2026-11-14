@@ -13639,10 +13639,6 @@
     "meaning_hash": "7376b98e453e918c2b55714ae795183e",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
-  "emerson": {
-    "meaning_hash": "ea673f2cfdc00450d2aec7ca3f406ce7",
-    "mnemonic_hash": "a7cd92187743e46eb364a643ac26f0eb"
-  },
   "side": {
     "meaning_hash": "664f717d9c4ba75737e14a39afea6119",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
@@ -13688,7 +13684,7 @@
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "throne": {
-    "meaning_hash": "b5fc52e3255b5b2521aada6d4a867677",
+    "meaning_hash": "9130948dcee3e5373da821a42830bfc6",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "throw": {
@@ -13728,7 +13724,7 @@
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "virus": {
-    "meaning_hash": "dce599a20631b09756759d7db780fa1a",
+    "meaning_hash": "e49c490eb9eff8762ce12dee2b1f89b7",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "vocal": {
