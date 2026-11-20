@@ -5319,10 +5319,6 @@
     "meaning_hash": "64881ac1cb3b9b070e3c2d42c515b687",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
-  "er": {
-    "meaning_hash": "ae35fcdf1a8663f381b522df5b3b4071",
-    "mnemonic_hash": "453fd91a2bbf02155c3dc1f52977a7d4"
-  },
   "beam": {
     "meaning_hash": "adf1838ff29aae4c44a7f23c6ebffa26",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
@@ -14232,7 +14228,7 @@
     "mnemonic_hash": "7f4957cf0f9c123eacba842d01f51cae"
   },
   "revolutionary": {
-    "meaning_hash": "ba320125fc5bf8abcee7ca33ceec16bd",
+    "meaning_hash": "1a74df51b9e5d0da44534a8b32e980d0",
     "mnemonic_hash": "c2c568a6ec431dec735a6c43c0db4b17"
   },
   "revolve": {
@@ -14299,10 +14295,6 @@
     "meaning_hash": "d779c96df6edf29b5dffa56e71d8384b",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
-  "germany": {
-    "meaning_hash": "186d3f85232dc6e016054e5393f98911",
-    "mnemonic_hash": "4ad5950b0bbc1c06e1bb6c4e6a5ba424"
-  },
   "contact": {
     "meaning_hash": "c4bae3846bec58ad09ecadc5a9ecffd3",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
@@ -14321,10 +14313,6 @@
   },
   "contingent": {
     "meaning_hash": "202f7bcf6e46dd3a1ee53d1eef7005f3",
-    "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
-  },
-  "goethe": {
-    "meaning_hash": "b4867f5b15203a40771d1d81caac3a41",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "romantic": {
@@ -14373,10 +14361,6 @@
   },
   "workshop": {
     "meaning_hash": "866a21972c08f97a7c991e2b25182a2f",
-    "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
-  },
-  "das": {
-    "meaning_hash": "d9cc503945d30a784655a9b3fd191bff",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "ascend": {
