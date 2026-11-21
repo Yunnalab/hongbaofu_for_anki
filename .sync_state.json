@@ -14484,7 +14484,7 @@
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "except": {
-    "meaning_hash": "a145cbdb6ab8a876ca6636c0dfe5e62d",
+    "meaning_hash": "01e3e905941a6631a0c514961a94962a",
     "mnemonic_hash": "7af142c1b0daea0d799f98aceddfe6ab"
   },
   "exception": {
@@ -14504,11 +14504,11 @@
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "gum": {
-    "meaning_hash": "02b4e43660a07aaf796b94a1da499317",
+    "meaning_hash": "cf8a170c73f86a45a3a4418645f55783",
     "mnemonic_hash": "35f6bd05f4e251eb0dfa6472d05fa25b"
   },
   "gun": {
-    "meaning_hash": "e3d70f801b268e09e34ef4b39ddf6caf",
+    "meaning_hash": "f8a50114e8e48e943de652b304c652e0",
     "mnemonic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "gut": {
